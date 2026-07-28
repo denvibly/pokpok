@@ -136,7 +136,7 @@
     }
     .archive-item{
       display:flex;
-      align-items:center;
+      align-items:flex-start;
       gap:11px;
       border:1px solid var(--line);
       border-radius:9px;
@@ -157,6 +157,25 @@
       font-size:11px;
       overflow-wrap:anywhere
     }
+    .archive-item-price{margin-top:4px;color:var(--green);font-size:11px;font-weight:800}
+    .archive-item-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:6px;
+      flex-wrap:wrap;
+      flex:0 0 auto;
+      max-width:210px
+    }
+    .archive-item-actions .list-pick{flex:0 0 auto}
+    .archive-item-actions .add,
+    .archive-item-actions .minus,
+    .archive-item-actions .plus{
+      min-width:30px;
+      height:30px
+    }
+    .archive-item-actions .add{height:auto;min-height:30px}
+    .archive-item-actions strong{min-width:18px;text-align:center;font-size:13px}
     .restore-btn{
       flex:0 0 auto;
       border:0;
@@ -166,6 +185,11 @@
       color:#fff;
       font-size:12px;
       font-weight:800
+    }
+    @media(max-width:560px){
+      .archive-item{flex-wrap:wrap}
+      .archive-item-copy{min-width:calc(100% - 70px)}
+      .archive-item-actions{width:100%;max-width:none;justify-content:flex-end}
     }
     .restore-all-row{
       display:flex;
@@ -843,11 +867,11 @@
 <div id="archiveModal" class="modal">
   <div class="modal-card">
     <div class="modal-head">
-      <strong>Archived Products</strong>
+      <strong>Archive</strong>
       <button class="close" data-close="archiveModal">×</button>
     </div>
     <div class="restore-all-row">
-      <button id="restoreAllBtn" class="restore-all-btn" type="button">Restore All</button>
+      <button id="restoreAllBtn" class="restore-all-btn" type="button">Restore hidden products</button>
     </div>
     <div id="archiveItems" class="archive-list"></div>
   </div>
@@ -872,6 +896,8 @@ const CONFIG = {
   GOOGLE_SHEET_URL: "https://docs.google.com/spreadsheets/d/12wRBORBwDEmoUxI3I4yCKOL1usx5JZkWpqD55weFVLM/edit?gid=0",
   GOOGLE_SHEET_TAB: "Items",
   GOOGLE_SHEET_GID: "0",
+  GOOGLE_SHEET_ARCHIVE_TAB: "Archive",
+  GOOGLE_SHEET_ARCHIVE_GID: "899246934",
   GOOGLE_SHEET_API_URL: "",
   RECEIPT_AI_URL: ""
 };
@@ -1015,6 +1041,7 @@ const LS = {
   listNames:"shopping:listNames:v1",
   runningLowCollapsed:"shopping:runningLowCollapsed:v1",
   archived:"shopping:archivedProducts:v1",
+  sheetArchiveItems:"shopping:sheetArchiveItems:v1",
   settings:"shopping:settings:v1",
 };
 
@@ -1029,6 +1056,7 @@ let state = {
   checked: loadLocal(LS.checked, {}),
   cartPrices: loadLocal(LS.cartPrices, {}),
   archived: loadLocal(LS.archived, {}),
+  sheetArchiveItems: loadLocal(LS.sheetArchiveItems, []),
   priceHistory: loadLocal(LS.history, DEFAULT_PRICE_HISTORY),
   orders: loadLocal(LS.orders, []),
   query:"",
@@ -1037,6 +1065,8 @@ let state = {
     spreadsheetUrl:CONFIG.GOOGLE_SHEET_URL,
     spreadsheetTab:CONFIG.GOOGLE_SHEET_TAB,
     spreadsheetGid:CONFIG.GOOGLE_SHEET_GID,
+    spreadsheetArchiveTab:CONFIG.GOOGLE_SHEET_ARCHIVE_TAB,
+    spreadsheetArchiveGid:CONFIG.GOOGLE_SHEET_ARCHIVE_GID,
     sheetApiUrl:CONFIG.GOOGLE_SHEET_API_URL,
     ...loadLocal(LS.settings, {})
   }};
@@ -1067,6 +1097,7 @@ function saveLocal(){
   localStorage.setItem(LS.checked,JSON.stringify(state.checked));
   localStorage.setItem(LS.cartPrices,JSON.stringify(state.cartPrices));
   localStorage.setItem(LS.archived,JSON.stringify(state.archived));
+  localStorage.setItem(LS.sheetArchiveItems,JSON.stringify(state.sheetArchiveItems));
   localStorage.setItem(LS.history,JSON.stringify(state.priceHistory));
   localStorage.setItem(LS.orders,JSON.stringify(state.orders));
   localStorage.setItem(LS.settings,JSON.stringify(state.settings));
@@ -1077,12 +1108,17 @@ function toast(msg){
   clearTimeout(el._timer);
   el._timer=setTimeout(()=>el.classList.remove("show"),1800);
 }
-function allItems(){
+function mainItems(){
   return state.categories.flatMap(c=>c.items.map(i=>{
     i.categoryId=c.id;
     i.categoryName=c.name;
     return i;
   }));
+}
+function allItems(){
+  const byId=new Map(mainItems().map(item=>[item.id,item]));
+  (state.sheetArchiveItems||[]).forEach(item=>byId.set(item.id,item));
+  return [...byId.values()];
 }
 function ensureDefaultProductsPresent(){
   DEFAULT_CATEGORIES.forEach(defaultCategory=>{
@@ -1103,13 +1139,42 @@ function ensureDefaultProductsPresent(){
 function isArchived(itemId){
   return Boolean(state.archived && state.archived[itemId]);
 }
+function productMatchKey(item){
+  const itemNumber=receiptItemNumber(item);
+  if(itemNumber) return `#${itemNumber}`;
+  return `name:${String(item?.name||"").trim().toLowerCase()}`;
+}
+function isSheetArchiveProduct(item){
+  if(!item) return false;
+  if(item.source==="google-sheet-archive") return true;
+  const key=productMatchKey(item);
+  return (state.sheetArchiveItems||[]).some(archiveItem=>
+    archiveItem.id===item.id || productMatchKey(archiveItem)===key
+  );
+}
 function archivedProducts(){
-  return allItems()
+  const products=[];
+  const seen=new Set();
+
+  (state.sheetArchiveItems||[]).forEach(item=>{
+    const key=productMatchKey(item);
+    seen.add(key);
+    products.push({...item,archiveKind:"sheet"});
+  });
+
+  mainItems()
     .filter(item=>isArchived(item.id))
-    .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+    .forEach(item=>{
+      const key=productMatchKey(item);
+      if(seen.has(key)) return;
+      seen.add(key);
+      products.push({...item,archiveKind:"manual"});
+    });
+
+  return products.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
 }
 function archiveProduct(itemId){
-  const item=allItems().find(product=>product.id===itemId);
+  const item=mainItems().find(product=>product.id===itemId);
   if(!item) return;
   state.archived[itemId]={
     archivedAt:new Date().toISOString(),
@@ -1146,32 +1211,66 @@ function restoreAllProducts(){
 }
 function renderArchive(){
   const items=archivedProducts();
+  const manuallyHidden=mainItems().filter(item=>isArchived(item.id));
   const countEl=document.getElementById("archiveCount");
   if(countEl) countEl.textContent=String(items.length);
 
   const root=document.getElementById("archiveItems");
   const restoreAll=document.getElementById("restoreAllBtn");
   if(!root) return;
-  if(restoreAll) restoreAll.disabled=!items.length;
+  if(restoreAll){
+    restoreAll.disabled=!manuallyHidden.length;
+    restoreAll.parentElement.classList.toggle("hidden",!manuallyHidden.length);
+  }
 
   if(!items.length){
-    root.innerHTML=`<div class="archive-empty">No archived products yet.</div>`;
+    root.innerHTML=`<div class="archive-empty">No products in Archive.</div>`;
     return;
   }
 
-  root.innerHTML=items.map(item=>`
-    <div class="archive-item">
-      ${imageHtml(item,true)}
-      <div class="archive-item-copy">
-        <div class="archive-item-name">${escapeHtml(item.name)}</div>
-        <div class="archive-item-meta">
-          ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(item.categoryName||"Uncategorized")}
+  root.innerHTML=items.map(item=>{
+    const activeList=selectedList(item.id);
+    const activeListQty=qty(item.id,activeList);
+    const price=itemUnitPrice(item);
+    return `
+      <div class="archive-item">
+        ${imageHtml(item,true)}
+        <div class="archive-item-copy">
+          <button type="button" class="archive-item-name item-name-button" data-detail="${item.id}">${escapeHtml(item.name)}</button>
+          <div class="archive-item-meta">
+            ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(item.categoryName||"Uncategorized")}
+          </div>
+          ${item.weight?`<div class="archive-item-meta">${escapeHtml(item.weight)}</div>`:""}
+          ${price>0?`<div class="archive-item-price">$${price.toFixed(2)}</div>`:""}
+          ${listSummaryHtml(item.id)}
         </div>
-        ${primaryReceipt(item)?`<div class="archive-item-meta">${escapeHtml(primaryReceipt(item))}</div>`:""}
+        <div class="archive-item-actions">
+          <div class="list-pick" aria-label="Choose shopping list">
+            ${LIST_NUMBERS.map(listNo=>`
+              <button
+                type="button"
+                class="${activeList===listNo?"selected":""}"
+                data-list-select="${item.id}|${listNo}"
+                title="Add to List ${listNo}"
+                aria-label="Choose List ${listNo}"
+              >${listNo}</button>
+            `).join("")}
+          </div>
+          ${activeListQty?`
+            <button class="minus" data-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+            <strong>${activeListQty}</strong>
+            <button class="plus" data-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+          `:`
+            <button class="add" data-plus="${item.id}">Add</button>
+          `}
+          ${item.archiveKind==="manual"
+            ?`<button type="button" class="restore-btn" data-restore="${item.id}">Restore</button>`
+            :""
+          }
+        </div>
       </div>
-      <button type="button" class="restore-btn" data-restore="${item.id}">Restore</button>
-    </div>
-  `).join("");
+    `;
+  }).join("");
 }
 function applyDefaultPricing(){
   const items=allItems();
@@ -1258,6 +1357,7 @@ function setSelectedList(id,listNo){
   saveLocal();
   renderSuggestions();
   renderCategories();
+  renderArchive();
   if(activeDetailItemId===id) renderProductDrawer(id);
 }
 function qty(id,listNo=selectedList(id)){
@@ -1350,7 +1450,7 @@ function dayDiff(dateStr){
 }
 function getSuggestions(){
   return allItems()
-    .filter(item=>!isArchived(item.id))
+    .filter(item=>!isArchived(item.id) && !isSheetArchiveProduct(item))
     .map(item=>{
       const last=getLastPurchaseDate(item.id);
       if(!last) return null;
@@ -1452,7 +1552,7 @@ function renderCategories(){
   const root=document.getElementById("categoriesRoot");
   const q=state.query.trim().toLowerCase();
   root.innerHTML=state.categories.map(cat=>{
-    const items=cat.items.filter(i=>!isArchived(i.id) && (!q||[i.name,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
+    const items=cat.items.filter(i=>!isArchived(i.id) && !isSheetArchiveProduct(i) && (!q||[i.name,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
     if(!items.length) return "";
     return `
       <section class="category">
@@ -1721,7 +1821,10 @@ function parseCsv(text){
   if(row.some(v=>String(v).trim()!=="")) rows.push(row);
   if(!rows.length) return [];
   const headers=rows[0].map(x=>String(x).trim());
-  return rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
+  return rows.slice(1).map(r=>({
+    ...Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])),
+    __cells:r
+  }));
 }
 function parseGviz(text){
   const first=text.indexOf("{");
@@ -1732,17 +1835,21 @@ function parseGviz(text){
   const headers=(table.cols||[]).map((c,i)=>String(c.label||c.id||`Column ${i+1}`).trim());
   return (table.rows||[]).map(row=>{
     const obj={};
+    const cells=[];
     headers.forEach((header,i)=>{
       const cell=row.c?.[i];
-      obj[header]=cell?.v??cell?.f??"";
+      const value=cell?.v??cell?.f??"";
+      obj[header]=value;
+      cells.push(value);
     });
+    obj.__cells=cells;
     return obj;
   });
 }
-async function fetchPublicSheetRows(){
+async function fetchPublicSheetRows(tabOverride="",gidOverride=""){
   const id=spreadsheetIdFromUrl(state.settings.spreadsheetUrl||CONFIG.GOOGLE_SHEET_URL);
-  const tab=state.settings.spreadsheetTab||CONFIG.GOOGLE_SHEET_TAB||"Items";
-  const gid=state.settings.spreadsheetGid||CONFIG.GOOGLE_SHEET_GID||"0";
+  const tab=tabOverride||state.settings.spreadsheetTab||CONFIG.GOOGLE_SHEET_TAB||"Items";
+  const gid=gidOverride||state.settings.spreadsheetGid||CONFIG.GOOGLE_SHEET_GID||"0";
   if(!id) throw new Error("Spreadsheet ID is missing");
 
   const gviz=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}&headers=1&_=${Date.now()}`;
@@ -1785,20 +1892,30 @@ function receiptItemNumber(item){
 function slugify(value){
   return String(value||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||`item-${Date.now()}`;
 }
-function mergeProductsFromRows(rows){
-  const cleanRows=(rows||[]).map(row=>({
+function cleanProductRows(rows,{archiveLayout=false}={}){
+  return (rows||[]).map(row=>{
+    const cells=Array.isArray(row?.__cells)?row.__cells:[];
+    const namedCategory=sheetValue(row,["Category"]);
+    const namedCost=sheetValue(row,["Cost","Price"]);
+    const category=archiveLayout && cells.length>=11 ? (cells[9]||namedCategory) : namedCategory;
+    const costValue=archiveLayout && cells.length>=11 ? (cells[10]??namedCost) : namedCost;
+    return {
     name:String(sheetValue(row,["Item","Name","Product"] )||"").trim(),
     itemNumber:String(sheetValue(row,["#","Item #","Item Number","SKU"] )||"").replace(/\.0$/,"" ).trim(),
-    cost:parseCost(sheetValue(row,["Cost","Price"])),
+    cost:parseCost(costValue),
     pic:normalizeImageUrl(sheetValue(row,["Pic Dropbox","Dropbox Pic","Pic URL","Pic","Picture","Image","Image URL","Photo"])),
     weight:String(sheetValue(row,["Weight","Size","Unit"] )||"").trim(),
     link:normalizeProductLink(sheetValue(row,["Link","Product Link","Costco Link","Official Link","Website","URL"])),
     description:String(sheetValue(row,["Description","Details"] )||"").trim(),
-    category:String(sheetValue(row,["Category"] )||"").trim()
-  })).filter(r=>r.name||r.itemNumber);
+    category:String(category||"").trim()
+    };
+  }).filter(r=>r.name||r.itemNumber);
+}
+function mergeProductsFromRows(rows){
+  const cleanRows=cleanProductRows(rows);
 
   state.categories.forEach(cat=>{cat.items=cat.items.filter(item=>item.source!=="google-sheet")});
-  const existing=allItems();
+  const existing=mainItems();
   let updated=0,added=0;
 
   cleanRows.forEach(row=>{
@@ -1853,8 +1970,51 @@ function mergeProductsFromRows(rows){
   saveLocal();
   return {rows:cleanRows.length,updated,added};
 }
+function replaceArchiveProductsFromRows(rows){
+  const cleanRows=cleanProductRows(rows,{archiveLayout:true});
+  const existingMain=mainItems();
+
+  state.sheetArchiveItems=cleanRows.map(row=>{
+    const itemNumber=row.itemNumber;
+    let existing=existingMain.find(item=>itemNumber && receiptItemNumber(item)===itemNumber);
+    if(!existing && row.name){
+      existing=existingMain.find(item=>String(item.name||"").toLowerCase()===row.name.toLowerCase());
+    }
+
+    const id=existing?.id||`sheet-archive-${itemNumber||slugify(row.name)}`;
+    const categoryName=row.category||existing?.categoryName||"Archive";
+    return {
+      ...(existing||{}),
+      id,
+      name:row.name||existing?.name||`Costco Item ${itemNumber}`,
+      itemNumber:itemNumber||existing?.itemNumber||"",
+      receipt:itemNumber?[`${itemNumber} - ${(row.name||existing?.name||"ITEM").toUpperCase()}`]:(existing?.receipt||[]),
+      unit:row.weight||existing?.unit||"pc",
+      weight:row.weight||existing?.weight||"",
+      productLink:row.link||existing?.productLink||"",
+      description:row.description||existing?.description||"",
+      sheetPrice:row.cost!==null?row.cost:existing?.sheetPrice,
+      priceSource:row.cost!==null?"sheet":(existing?.priceSource||""),
+      imageUrl:row.pic||existing?.imageUrl||"",
+      imageSource:row.pic?"Google Sheet: Archive":(existing?.imageSource||""),
+      defaultInterval:existing?.defaultInterval||14,
+      categoryId:"sheet-archive",
+      categoryName,
+      source:"google-sheet-archive"
+    };
+  });
+
+  saveLocal();
+  return {rows:state.sheetArchiveItems.length};
+}
 async function loadFromSheet(){
   setSheetStatus("Loading products from Google Sheet...");
+  const archiveTab=state.settings.spreadsheetArchiveTab||CONFIG.GOOGLE_SHEET_ARCHIVE_TAB||"Archive";
+  const archiveGid=state.settings.spreadsheetArchiveGid||CONFIG.GOOGLE_SHEET_ARCHIVE_GID||"899246934";
+  const archiveRequest=fetchPublicSheetRows(archiveTab,archiveGid)
+    .then(rows=>({rows,error:null}))
+    .catch(error=>({rows:null,error}));
+
   try{
     let rows=[];
     try{
@@ -1865,9 +2025,16 @@ async function loadFromSheet(){
       rows=data.rows||data.products||data;
     }
     const result=mergeProductsFromRows(rows);
+    const archiveLoad=await archiveRequest;
+    let archiveResult={rows:(state.sheetArchiveItems||[]).length};
+    if(archiveLoad.rows){
+      archiveResult=replaceArchiveProductsFromRows(archiveLoad.rows);
+    }else{
+      console.warn("Archive sheet load failed; using saved Archive products",archiveLoad.error);
+    }
     render();
-    setSheetStatus(`${result.rows} product row${result.rows===1?"":"s"} loaded · ${result.updated} updated · ${result.added} added`);
-    toast("Products refreshed from Google Sheets");
+    setSheetStatus(`${result.rows} product row${result.rows===1?"":"s"} loaded · ${archiveResult.rows} archive row${archiveResult.rows===1?"":"s"} loaded`);
+    toast(archiveLoad.rows?"Products and Archive refreshed":"Products refreshed · using saved Archive");
   }catch(error){
     console.error(error);
     setSheetStatus("Could not read the Google Sheet. Confirm the tab is named Items and set Share → General access → Anyone with the link → Viewer.",true);
