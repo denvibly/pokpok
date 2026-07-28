@@ -613,9 +613,9 @@
       .price-input{grid-column:3;width:88px}
       .cart-line-total{grid-column:4;min-width:62px}
     }
-    .cart-actions{display:flex;gap:8px;margin-top:12px}
+    .cart-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
     .cart-actions button{
-      flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700
+      flex:1 1 150px;padding:10px;border-radius:8px;font-size:13px;font-weight:700
     }
     .checkout-recommendations{
       margin-top:24px;padding-top:18px;border-top:1px solid #D2D2D2
@@ -657,6 +657,8 @@
       .checkout-recommendations-grid{grid-template-columns:1fr}
     }
     .outline{background:#FAFAF8;border:1px solid var(--line)}
+    .pdf-save{background:var(--ink);border:0;color:#fff}
+    .pdf-save:disabled{opacity:.65;cursor:wait}
     .save{background:var(--green);border:0;color:#fff}
     .trash{flex:0 0 auto!important;border:1px solid var(--line);background:#FAFAF8;color:var(--orange)}
     @media(max-width:560px){
@@ -931,6 +933,7 @@
     <div class="small" style="margin-top:8px">The estimate uses your latest receipt price, a Google Sheet price when available, or a Costco online estimate. Enter the actual paid price to update the total and save it to price history.</div>
     <div class="cart-actions">
       <button id="copyBtn" class="outline">Copy List</button>
+      <button id="savePdfBtn" class="pdf-save">Save PDF</button>
       <button id="saveOrderBtn" class="save">Save Order</button>
       <button id="clearBtn" class="trash">🗑</button>
     </div>
@@ -2291,6 +2294,240 @@ function copyList(){
     .then(()=>toast("All lists copied"))
     .catch(()=>toast("Unable to copy"));
 }
+let pdfMakeLoaderPromise=null;
+function loadExternalScript(src){
+  return new Promise((resolve,reject)=>{
+    const existing=document.querySelector(`script[data-pdf-src="${src}"]`);
+    if(existing){
+      if(existing.dataset.loaded==="true"){resolve();return}
+      existing.addEventListener("load",resolve,{once:true});
+      existing.addEventListener("error",reject,{once:true});
+      return;
+    }
+
+    const script=document.createElement("script");
+    script.src=src;
+    script.async=true;
+    script.dataset.pdfSrc=src;
+    script.addEventListener("load",()=>{
+      script.dataset.loaded="true";
+      resolve();
+    },{once:true});
+    script.addEventListener("error",()=>{
+      script.remove();
+      reject(new Error(`Could not load ${src}`));
+    },{once:true});
+    document.head.appendChild(script);
+  });
+}
+async function loadPdfMake(){
+  if(globalThis.pdfMake?.createPdf) return globalThis.pdfMake;
+  if(!pdfMakeLoaderPromise){
+    pdfMakeLoaderPromise=(async()=>{
+      await loadExternalScript("https://cdn.jsdelivr.net/npm/pdfmake@0.3.9/build/pdfmake.min.js");
+      await loadExternalScript("https://cdn.jsdelivr.net/npm/pdfmake@0.3.9/build/vfs_fonts.js");
+      if(!globalThis.pdfMake?.createPdf) throw new Error("PDF library did not initialize");
+      return globalThis.pdfMake;
+    })().catch(error=>{
+      pdfMakeLoaderPromise=null;
+      throw error;
+    });
+  }
+  return pdfMakeLoaderPromise;
+}
+function cartPdfData(){
+  const lists=[];
+  let grandTotal=0;
+  let itemCount=0;
+
+  LIST_NUMBERS.forEach(listNo=>{
+    const rows=[];
+    let subtotal=0;
+
+    allItems().filter(item=>qty(item.id,listNo)>0).forEach(item=>{
+      const quantity=qty(item.id,listNo);
+      const stored=state.cartPrices[item.id];
+      const parsedStored=stored!==undefined&&stored!==""?parseFloat(stored):NaN;
+      const unitPrice=Number.isFinite(parsedStored)?parsedStored:itemUnitPrice(item);
+      const lineTotal=unitPrice*quantity;
+
+      rows.push({
+        name:item.name||"Product",
+        itemNumber:receiptItemNumber(item)||"",
+        quantity,
+        unitPrice,
+        lineTotal
+      });
+      subtotal+=lineTotal;
+      itemCount+=quantity;
+    });
+
+    if(rows.length){
+      lists.push({name:listName(listNo),rows,subtotal});
+      grandTotal+=subtotal;
+    }
+  });
+
+  return {lists,grandTotal,itemCount};
+}
+function cartPdfDocument(report,dateLabel){
+  const content=[
+    {
+      columns:[
+        {text:"POKPOK",style:"brand"},
+        {text:dateLabel,style:"date"}
+      ],
+      margin:[0,0,0,5]
+    },
+    {text:"SHOPPING CART",style:"title"},
+    {
+      text:`${report.itemCount} item${report.itemCount===1?"":"s"} | ${report.lists.length} list${report.lists.length===1?"":"s"}`,
+      style:"summary",
+      margin:[0,0,0,16]
+    }
+  ];
+
+  report.lists.forEach(list=>{
+    const body=[
+      [
+        {text:"Product",style:"tableHeader"},
+        {text:"Item #",style:"tableHeader"},
+        {text:"Qty",style:"tableHeader",alignment:"center"},
+        {text:"Price",style:"tableHeader",alignment:"right"},
+        {text:"Total",style:"tableHeader",alignment:"right"}
+      ],
+      ...list.rows.map(row=>[
+        {text:row.name,style:"productName"},
+        {text:row.itemNumber||"-",style:"itemNumber"},
+        {text:String(row.quantity),alignment:"center"},
+        {text:`$${row.unitPrice.toFixed(2)}`,alignment:"right"},
+        {text:`$${row.lineTotal.toFixed(2)}`,alignment:"right",bold:true}
+      ])
+    ];
+
+    content.push(
+      {text:list.name,style:"listTitle"},
+      {
+        table:{
+          headerRows:1,
+          widths:["*",58,28,52,58],
+          body
+        },
+        layout:{
+          fillColor:rowIndex=>rowIndex===0?"#1C2333":(rowIndex%2===0?"#F5F5F3":null),
+          hLineColor:"#D9D9D4",
+          vLineColor:"#D9D9D4",
+          hLineWidth:()=>0.6,
+          vLineWidth:()=>0.6,
+          paddingLeft:()=>7,
+          paddingRight:()=>7,
+          paddingTop:()=>6,
+          paddingBottom:()=>6
+        },
+        margin:[0,0,0,6]
+      },
+      {
+        text:`${list.name} subtotal: $${list.subtotal.toFixed(2)}`,
+        style:"subtotal",
+        margin:[0,0,0,15]
+      }
+    );
+  });
+
+  content.push(
+    {
+      canvas:[
+        {type:"line",x1:0,y1:0,x2:540,y2:0,lineWidth:1.5,lineColor:"#1C2333"}
+      ],
+      margin:[0,4,0,10]
+    },
+    {
+      columns:[
+        {text:"ESTIMATED TOTAL",style:"grandTotalLabel"},
+        {text:`$${report.grandTotal.toFixed(2)}`,style:"grandTotal"}
+      ]
+    },
+    {
+      text:"Prices are estimates based on the values currently shown in the POKPOK cart.",
+      style:"note",
+      margin:[0,9,0,0]
+    }
+  );
+
+  return {
+    info:{
+      title:`POKPOK Cart - ${dateLabel}`,
+      author:"POKPOK",
+      subject:"Shopping cart"
+    },
+    pageSize:"LETTER",
+    pageMargins:[36,42,36,42],
+    content,
+    footer:(currentPage,pageCount)=>({
+      text:`POKPOK | Page ${currentPage} of ${pageCount}`,
+      alignment:"center",
+      color:"#818898",
+      fontSize:8,
+      margin:[0,14,0,0]
+    }),
+    defaultStyle:{
+      font:"Roboto",
+      fontSize:9.5,
+      color:"#1C2333"
+    },
+    styles:{
+      brand:{fontSize:19,bold:true,color:"#1C2333"},
+      date:{fontSize:9,color:"#818898",alignment:"right",margin:[0,5,0,0]},
+      title:{fontSize:12,bold:true,color:"#9B4C14",characterSpacing:1},
+      summary:{fontSize:9,color:"#818898"},
+      listTitle:{fontSize:13,bold:true,color:"#1C2333",margin:[0,6,0,7]},
+      tableHeader:{bold:true,color:"#FFFFFF",fontSize:8.5},
+      productName:{bold:true},
+      itemNumber:{fontSize:8,color:"#697386"},
+      subtotal:{bold:true,alignment:"right",fontSize:9.5},
+      grandTotalLabel:{fontSize:13,bold:true},
+      grandTotal:{fontSize:18,bold:true,alignment:"right"},
+      note:{fontSize:8,color:"#818898"}
+    }
+  };
+}
+async function saveCartPdf(){
+  const report=cartPdfData();
+  if(!report.itemCount){
+    toast("Your cart is empty");
+    return;
+  }
+
+  const button=document.getElementById("savePdfBtn");
+  const oldLabel=button.textContent;
+  button.disabled=true;
+  button.textContent="Preparing...";
+
+  try{
+    const pdfMake=await loadPdfMake();
+    const now=new Date();
+    const fileDate=[
+      now.getFullYear(),
+      String(now.getMonth()+1).padStart(2,"0"),
+      String(now.getDate()).padStart(2,"0")
+    ].join("-");
+    const dateLabel=now.toLocaleDateString("en-US",{
+      year:"numeric",
+      month:"long",
+      day:"numeric"
+    });
+    await pdfMake
+      .createPdf(cartPdfDocument(report,dateLabel))
+      .download(`POKPOK-Cart-${fileDate}.pdf`);
+    toast("PDF saved");
+  }catch(error){
+    console.error("PDF generation failed",error);
+    toast("Could not create PDF");
+  }finally{
+    button.disabled=false;
+    button.textContent=oldLabel;
+  }
+}
 function clearCart(){
   state.cart={};
   state.cart2={};
@@ -2674,6 +2911,7 @@ document.getElementById("checkoutModal").addEventListener("click",e=>{
   if(e.target.id==="checkoutModal") closeCheckout();
 });
 document.getElementById("copyBtn").onclick=copyList;
+document.getElementById("savePdfBtn").onclick=saveCartPdf;
 document.getElementById("saveOrderBtn").onclick=saveOrder;
 document.getElementById("clearBtn").onclick=clearCart;
 document.getElementById("runningLowToggle").onclick=()=>{
@@ -2694,6 +2932,7 @@ document.addEventListener("keydown",e=>{
 applyDefaultPricing();
 render();
 loadFromSheet();
+setTimeout(()=>loadPdfMake().catch(error=>console.warn("PDF library preload failed",error)),0);
 </script>
 </body>
 </html>
