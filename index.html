@@ -744,9 +744,6 @@
     }
     .toast.show{display:block}
     .hidden{display:none!important}
-    .data-source-panel{padding:10px 12px}
-    .data-source-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .sync-btn{border:0;background:var(--yellow);color:var(--ink);border-radius:7px;padding:8px 12px;font-size:12px;font-weight:800}
     .small{font-size:11px;color:var(--muted)}
   </style>
 </head>
@@ -766,7 +763,13 @@
         <span>⌕</span>
         <input id="searchInput" placeholder="Search products..." />
       </div>
-      <button id="repeatBtn" class="icon-btn dark-btn" title="Repeat last purchase">↻</button>
+      <button
+        id="refreshSheetBtn"
+        class="icon-btn dark-btn"
+        type="button"
+        title="Refresh products from Google Sheet"
+        aria-label="Refresh products from Google Sheet"
+      >↻</button>
       <button id="archiveBtn" class="icon-btn dark-btn archive-top-btn" title="Open archived products">
         <span>Archive</span><span id="archiveCount" class="archive-count">0</span>
       </button>
@@ -786,16 +789,6 @@
   </header>
 
   <main class="content">
-    <section class="panel data-source-panel">
-      <div class="data-source-row">
-        <div>
-          <div class="panel-title" style="margin-bottom:3px">Product Database</div>
-          <div id="sheetStatus" class="small">Loading products from Google Sheet...</div>
-        </div>
-        <button id="refreshSheetBtn" class="sync-btn">Refresh</button>
-      </div>
-    </section>
-
     <section id="runningLowPanel" class="panel running-low-panel">
       <button
         id="runningLowToggle"
@@ -874,17 +867,7 @@ const CONFIG = {
   GOOGLE_SHEET_TAB: "Items",
   GOOGLE_SHEET_GID: "0",
   GOOGLE_SHEET_API_URL: "",
-  DROPBOX_UPLOAD_URL: "https://content.dropboxapi.com/2/files/upload",
-  DROPBOX_TOKEN: "",
   RECEIPT_AI_URL: ""
-};
-
-/* Product images. Add more item IDs and image URLs here. */
-const PRODUCT_IMAGES = {
-  "croissants": {
-    src: "https://www.dropbox.com/scl/fi/t9jho6ypqomz9hes4u6mg/Butter-Croissants-1199652.webp?rlkey=ehb95xnehgvtq5kvb2ev6vm16&raw=1",
-    fallback: "https://dl.dropboxusercontent.com/scl/fi/t9jho6ypqomz9hes4u6mg/Butter-Croissants-1199652.webp?rlkey=ehb95xnehgvtq5kvb2ev6vm16"
-  }
 };
 
 const DEFAULT_CATEGORIES = [
@@ -1410,10 +1393,6 @@ function normalizeImageUrl(value){
   if(imageFormula) url=imageFormula[1];
   const hyperlinkFormula=url.match(/^=HYPERLINK\(\s*["']([^"']+)["']/i);
   if(hyperlinkFormula) url=hyperlinkFormula[1];
-  if(url.includes("dropbox.com/")){
-    url=url.replace(/[?&]dl=0\b/g,"").replace(/[?&]dl=1\b/g,"");
-    url+=(url.includes("?")?"&":"?")+"raw=1";
-  }
   return url;
 }
 
@@ -1433,7 +1412,7 @@ function normalizeProductLink(value){
   }
 }
 function itemImageData(item){
-  const configured=item.imageUrl || PRODUCT_IMAGES[item.id] || "";
+  const configured=item.imageUrl || "";
   if(!configured) return {src:"",fallback:""};
   if(typeof configured==="string") return {src:normalizeImageUrl(configured),fallback:""};
   return {src:normalizeImageUrl(configured.src||""),fallback:normalizeImageUrl(configured.fallback||"")};
@@ -1936,29 +1915,6 @@ function saveOrder(){
   toast("Order and all three lists saved");
   render();
 }
-function repeatLastOrder(){
-  const last=state.orders[state.orders.length-1];
-  if(!last){
-    toast("No previous orders yet");
-    return;
-  }
-
-  state.cart={};
-  state.cart2={};
-  state.cart3={};
-
-  last.items
-    .filter(item=>!isArchived(item.id))
-    .forEach(item=>{
-      const listNo=LIST_NUMBERS.includes(Number(item.list))?Number(item.list):1;
-      cartFor(listNo)[item.id]=item.qty||1;
-    });
-
-  state.checked={};
-  saveLocal();
-  render();
-  toast("Last order loaded into its saved lists");
-}
 function copyList(){
   const sections=[];
   let grandTotal=0;
@@ -2343,7 +2299,6 @@ document.getElementById("checkoutClose").onclick=closeCheckout;
 document.getElementById("checkoutModal").addEventListener("click",e=>{
   if(e.target.id==="checkoutModal") closeCheckout();
 });
-document.getElementById("repeatBtn").onclick=repeatLastOrder;
 document.getElementById("copyBtn").onclick=copyList;
 document.getElementById("saveOrderBtn").onclick=saveOrder;
 document.getElementById("clearBtn").onclick=clearCart;
