@@ -1,0 +1,2367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1C2333" />
+  <title>My Costco</title>
+  <style>
+    :root{
+      --ink:#1C2333;
+      --bg:#F4F3EF;
+      --yellow:#F2B705;
+      --orange:#E1550B;
+      --green:#2F7A4D;
+      --line:#DAD7CC;
+      --muted:#8A8F9C;
+      --card:#FFFFFF;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    }
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    .app{min-height:100vh}
+    .topbar{
+      position:sticky;top:0;z-index:20;
+      background:var(--ink);
+      padding:18px 14px 14px;
+      box-shadow:0 2px 12px rgba(0,0,0,.12);
+    }
+    .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .title{
+      color:#fff;font-family:Arial Narrow,Arial,sans-serif;
+      text-transform:uppercase;font-size:24px;font-weight:900;letter-spacing:.5px
+    }
+    .cart-summary-btn{
+      border:0;
+      background:var(--yellow);
+      color:var(--ink);
+      min-height:40px;
+      padding:7px 11px;
+      border-radius:8px;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      font-size:12px;
+      font-weight:900
+    }
+    .cart-summary-icon{font-size:19px;line-height:1}
+    .cart-summary-count{
+      min-width:22px;
+      height:22px;
+      padding:0 6px;
+      border-radius:11px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      background:var(--ink);
+      color:#fff;
+      font-size:11px
+    }
+    .cart-summary-total{
+      padding-left:9px;
+      border-left:1px solid rgba(28,35,51,.25);
+      white-space:nowrap
+    }
+    .cart-summary-btn:disabled{opacity:.55;cursor:default}
+    .top-actions{display:flex;gap:8px;margin-top:12px}
+    .search{
+      flex:1;display:flex;align-items:center;gap:8px;
+      background:#2A3247;border-radius:8px;padding:9px 10px
+    }
+    .search input{
+      width:100%;border:0;outline:0;background:transparent;color:#fff;font-size:14px
+    }
+    .search input::placeholder{color:#8A93A8}
+    .icon-btn{
+      border:0;border-radius:8px;padding:0 12px;min-width:42px;
+      display:flex;align-items:center;justify-content:center;font-size:18px
+    }
+    .dark-btn{background:#2A3247;color:#fff}
+    .yellow-btn{background:var(--yellow);color:var(--ink)}
+    .archive-top-btn{
+      gap:7px;
+      padding:0 11px;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap
+    }
+    .chatgpt-link{
+      text-decoration:none;
+      gap:7px;
+      padding:0 11px;
+      min-height:42px;
+      font-size:12px;
+      font-weight:800;
+      white-space:nowrap
+    }
+    .chatgpt-link:visited{color:#fff}
+    .chatgpt-link:hover{background:#36405A}
+    .chatgpt-link-icon{
+      font-size:16px;
+      line-height:1
+    }
+    .archive-count{
+      min-width:20px;
+      height:20px;
+      padding:0 6px;
+      border-radius:10px;
+      background:var(--yellow);
+      color:var(--ink);
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-size:11px;
+      font-weight:900
+    }
+    .archive-list{display:flex;flex-direction:column;gap:8px}
+    .archive-empty{
+      border:1px dashed var(--line);
+      border-radius:10px;
+      padding:28px 14px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px
+    }
+    .archive-item{
+      display:flex;
+      align-items:center;
+      gap:11px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      padding:9px;
+      background:#FAFAF8
+    }
+    .archive-item-copy{flex:1;min-width:0}
+    .archive-item-name{
+      font-size:14px;
+      font-weight:800;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis
+    }
+    .archive-item-meta{
+      margin-top:3px;
+      color:var(--muted);
+      font-size:11px;
+      overflow-wrap:anywhere
+    }
+    .restore-btn{
+      flex:0 0 auto;
+      border:0;
+      border-radius:7px;
+      padding:8px 11px;
+      background:var(--green);
+      color:#fff;
+      font-size:12px;
+      font-weight:800
+    }
+    .restore-all-row{
+      display:flex;
+      justify-content:flex-end;
+      margin:0 0 12px
+    }
+    .restore-all-btn{
+      border:1px solid var(--line);
+      border-radius:7px;
+      padding:8px 12px;
+      background:#FAFAF8;
+      color:var(--ink);
+      font-size:12px;
+      font-weight:800
+    }
+    .content{padding:14px 12px}
+    .panel{
+      background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;
+      margin-bottom:12px
+    }
+    .panel-title{
+      font-size:12px;text-transform:uppercase;letter-spacing:.5px;
+      font-weight:800;color:var(--muted);margin-bottom:10px
+    }
+    .running-low-toggle{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:0;
+      margin:0 0 10px;
+      border:0;
+      background:transparent;
+      color:var(--muted);
+      text-align:left;
+      cursor:pointer
+    }
+    .running-low-toggle-title{
+      font-size:12px;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      font-weight:800
+    }
+    .running-low-toggle-meta{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      font-size:11px;
+      font-weight:800
+    }
+    .running-low-toggle-arrow{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      width:22px;
+      height:22px;
+      border:1px solid var(--line);
+      border-radius:50%;
+      background:#FAFAF8;
+      color:var(--ink);
+      transition:transform .18s ease
+    }
+    .running-low-panel.collapsed .running-low-toggle-arrow{
+      transform:rotate(-90deg)
+    }
+    .running-low-panel.collapsed .running-low-content{
+      display:none
+    }
+    .running-low-panel.collapsed .running-low-toggle{
+      margin-bottom:0
+    }
+    .suggestions{display:flex;flex-direction:column;gap:8px}
+    .suggestion{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border:1px solid var(--line);border-radius:8px;padding:9px 10px
+    }
+    .suggestion strong{font-size:13px}
+    .suggestion small{display:block;color:var(--muted);margin-top:2px}
+    .suggestion-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:7px;
+      flex-shrink:0
+    }
+    .suggestion-add{
+      min-width:43px;
+      border:0;
+      background:var(--yellow);
+      border-radius:6px;
+      padding:7px 10px;
+      color:#111;
+      font-weight:800
+    }
+    @media(max-width:640px){
+      .suggestion{align-items:flex-start}
+      .suggestion-actions{flex-direction:column;align-items:flex-end}
+    }
+    .category{margin-bottom:18px}
+    .category-head{
+      display:flex;align-items:center;justify-content:space-between;
+      border-bottom:2px solid var(--ink);padding-bottom:4px;margin-bottom:8px
+    }
+    .category-name{
+      font-family:Arial Narrow,Arial,sans-serif;
+      text-transform:uppercase;font-size:15px;font-weight:800;letter-spacing:.6px
+    }
+    .category-head button{border:0;background:none;color:var(--ink);opacity:.6;font-size:18px}
+    .items{display:flex;flex-direction:column;gap:6px}
+    .item{
+      background:#fff;border:1px solid var(--line);border-radius:8px;
+      padding:10px 10px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px
+    }
+    .item.active{border-color:var(--ink)}
+    .item-content{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+    .item-photo-wrap{
+      width:48px;height:48px;border-radius:8px;overflow:hidden;flex:0 0 48px;
+      border:1px solid var(--line);background:#FAFAF8;display:flex;align-items:center;justify-content:center
+    }
+    .item-photo{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+    .item-photo-fallback{font-size:20px;color:var(--muted)}
+    .item-main{min-width:0;flex:1}
+    .item-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .item-unit{font-size:11px;color:var(--muted);margin-top:3px}
+    .item-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10.5px;color:#586174;margin-top:3px;line-height:1.25;white-space:normal}
+    .item-receipt + .item-receipt{margin-top:1px}
+    .price-badge{font-size:11px;color:var(--muted);margin-top:2px}
+    .price-up{color:var(--orange);font-weight:800}
+    .price-down{color:var(--green);font-weight:800}
+    .qty{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      gap:7px;
+      flex-shrink:0;
+      flex-wrap:wrap
+    }
+    .qty button{
+      width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;
+      font-weight:900
+    }
+    .list-pick{
+      display:flex;
+      align-items:center;
+      gap:3px;
+      padding:3px;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#F5F4EF
+    }
+    .list-pick button{
+      width:25px;
+      height:25px;
+      border:0;
+      border-radius:5px;
+      background:transparent;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900
+    }
+    .list-pick button.selected{
+      background:var(--ink);
+      color:#fff
+    }
+    .item-list-summary{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      flex-wrap:wrap;
+      margin-top:5px
+    }
+    .list-mini-badge{
+      display:inline-flex;
+      align-items:center;
+      min-height:20px;
+      padding:2px 7px;
+      border-radius:10px;
+      background:#EEF0F4;
+      color:#3E4659;
+      font-size:10px;
+      font-weight:800
+    }
+    @media(max-width:640px){
+      .item{align-items:flex-start}
+      .qty{max-width:150px}
+      .list-pick{order:1}
+      .add,.minus,.plus,.qty strong{order:2}
+      .remove{order:3}
+    }
+    .minus{border:1px solid var(--line);background:#FAFAF8}
+    .plus{border:0;background:var(--yellow)}
+    .add{
+      border:0;background:var(--ink);color:#fff;border-radius:6px;
+      padding:7px 14px;font-size:12.5px;font-weight:700
+    }
+    .remove{border:0;background:none;color:#C7C2B4;font-size:18px}
+    .custom-row{display:flex;gap:6px;margin-bottom:8px}
+    .custom-row input{
+      flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 10px;outline:0
+    }
+    .custom-row button{
+      border:0;background:var(--ink);color:#fff;border-radius:6px;padding:0 14px;font-weight:700
+    }
+    body.checkout-open{overflow:hidden}
+    .checkout-modal{
+      position:fixed;
+      inset:0;
+      z-index:95;
+      display:none;
+      align-items:stretch;
+      justify-content:flex-end;
+      background:rgba(28,35,51,.56)
+    }
+    .checkout-modal.open{display:flex}
+    .checkout-panel{
+      width:min(820px,100%);
+      height:100%;
+      display:flex;
+      flex-direction:column;
+      background:#EFEFEF;
+      box-shadow:-10px 0 34px rgba(28,35,51,.25)
+    }
+    .checkout-head{
+      min-height:68px;
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      background:var(--ink);
+      color:#fff
+    }
+    .checkout-head-copy strong{
+      display:block;
+      font-family:Arial Narrow,Arial,sans-serif;
+      text-transform:uppercase;
+      letter-spacing:.5px;
+      font-size:18px
+    }
+    .checkout-head-copy span{display:block;margin-top:3px;color:#AEB6C8;font-size:12px}
+    .checkout-close{
+      width:38px;height:38px;border:0;border-radius:8px;
+      background:#2A3247;color:#fff;font-size:25px;line-height:1
+    }
+    .cart-sheet{
+      background:#EFEFEF;
+      flex:1;
+      overflow:auto;
+      padding:16px
+    }
+    .cart-list-group{
+      margin-top:12px;
+      border:1px solid #D2D2D2;
+      border-radius:10px;
+      overflow:hidden;
+      background:rgba(255,255,255,.35)
+    }
+    .cart-list-group:first-child{margin-top:8px}
+    .cart-list-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      padding:9px 11px;
+      background:#E2E2E2;
+      border-bottom:1px solid #D0D0D0
+    }
+    .cart-list-name-editor{
+      display:flex;
+      align-items:center;
+      gap:5px;
+      flex:1;
+      min-width:0
+    }
+    .cart-list-name-input{
+      width:min(230px,100%);
+      min-width:0;
+      border:1px solid transparent;
+      border-radius:6px;
+      padding:3px 5px;
+      background:transparent;
+      color:var(--ink);
+      font:900 13px/1.2 Arial,sans-serif;
+      outline:0
+    }
+    .cart-list-name-input:hover{border-color:#C4C4C4;background:rgba(255,255,255,.45)}
+    .cart-list-name-input:focus{border-color:#8C96A8;background:#fff}
+    .cart-list-name-edit-icon{
+      flex:0 0 auto;
+      color:#7E8798;
+      font-size:12px;
+      pointer-events:none
+    }
+    .cart-list-subtotal{font-size:12px;font-weight:900;color:#3F4656}
+    .cart-item{
+      padding:8px 10px;
+      border-bottom:1px solid #D4D4D4;
+      background:transparent
+    }
+    .cart-item:last-child{border-bottom:0}
+    .cart-row{display:grid;grid-template-columns:18px 34px minmax(150px,1fr) auto auto 72px 66px 32px;align-items:center;gap:10px}
+    .cart-item-controls{display:flex;align-items:center;gap:5px}
+    .cart-item-controls button{
+      width:28px;height:28px;border-radius:6px;
+      display:flex;align-items:center;justify-content:center;
+      font-weight:900
+    }
+    .cart-qty-minus{border:1px solid var(--line);background:#FAFAF8}
+    .cart-qty-plus{border:0;background:var(--yellow)}
+    .cart-qty-value{min-width:18px;text-align:center;font-size:13px;font-weight:900}
+    .cart-list-pick{
+      display:flex;align-items:center;gap:3px;padding:3px;
+      border:1px solid var(--line);border-radius:8px;background:#F5F4EF
+    }
+    .cart-list-pick button{
+      width:25px;height:25px;border:0;border-radius:5px;
+      background:transparent;color:var(--muted);font-size:11px;font-weight:900
+    }
+    .cart-list-pick button.selected{background:var(--ink);color:#fff}
+    .cart-remove-item{
+      width:30px;height:30px;border:1px solid var(--line);border-radius:7px;
+      background:#FAFAF8;color:var(--orange);font-size:16px
+    }
+    @media(max-width:560px){
+      .cart-row{grid-template-columns:18px 34px minmax(0,1fr) auto;gap:8px}
+      .cart-list-pick{grid-column:3}
+      .cart-item-controls{grid-column:4}
+      .price-input{grid-column:3;width:88px}
+      .cart-line-total{grid-column:4;min-width:62px}
+      .cart-remove-item{grid-column:4;justify-self:end}
+    }
+    .check{
+      width:18px;height:18px;border-radius:4px;border:2px solid #C7C2B4;
+      display:flex;align-items:center;justify-content:center;flex-shrink:0
+    }
+    .check.done{background:var(--green);border-color:var(--green);color:#fff}
+    .cart-photo-wrap{
+      width:34px;height:34px;border-radius:7px;overflow:hidden;flex:0 0 34px;
+      border:1px solid var(--line);background:#FAFAF8;display:flex;align-items:center;justify-content:center
+    }
+    .cart-photo{width:100%;height:100%;object-fit:contain;display:block;background:#fff}
+    .cart-copy{flex:1;min-width:0}
+    .cart-name{font-size:14px}
+    .cart-receipt{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:10px;color:var(--muted);margin-top:2px;line-height:1.2}
+    .cart-name.done{text-decoration:line-through;opacity:.5}
+    .cart-add-another{position:relative;width:max-content;max-width:100%;margin-top:5px}
+    .cart-add-another-btn{
+      border:0;
+      background:transparent;
+      color:#9B4C14;
+      padding:0;
+      font-size:11px;
+      font-weight:900;
+      cursor:pointer
+    }
+    .cart-add-another-btn:hover{text-decoration:underline}
+    .cart-add-another-menu{
+      position:absolute;
+      top:calc(100% + 6px);
+      left:0;
+      z-index:12;
+      display:none;
+      min-width:148px;
+      padding:7px;
+      border:1px solid var(--line);
+      border-radius:9px;
+      background:#fff;
+      box-shadow:0 8px 22px rgba(28,35,51,.18)
+    }
+    .cart-add-another.open .cart-add-another-menu{display:block}
+    .cart-add-another-label{
+      padding:2px 4px 6px;
+      color:var(--muted);
+      font-size:10px;
+      font-weight:800;
+      text-transform:uppercase;
+      letter-spacing:.35px
+    }
+    .cart-add-another-options{display:flex;gap:4px}
+    .cart-add-another-options button{
+      flex:1;
+      min-width:40px;
+      height:30px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      background:#F5F4EF;
+      color:var(--ink);
+      font-size:11px;
+      font-weight:900
+    }
+    .cart-add-another-options button:hover{background:var(--yellow);border-color:var(--yellow)}
+    .cart-qty{font-size:13px;font-weight:700;color:var(--muted)}
+    .price-input{
+      width:72px;border:1px solid var(--line);border-radius:6px;padding:5px 6px;font-size:12px;
+      appearance:textfield;
+      -moz-appearance:textfield
+    }
+    .price-input::-webkit-outer-spin-button,
+    .price-input::-webkit-inner-spin-button{
+      -webkit-appearance:none;
+      margin:0
+    }
+    .cart-line-total{min-width:64px;text-align:right;font-size:13px;font-weight:800}
+    .cart-total-row{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      margin-top:12px;padding:12px 2px 4px;border-top:2px solid var(--ink);
+      font-size:15px;font-weight:900
+    }
+    .cart-total-row strong{font-size:21px}
+    @media(max-width:560px){
+      .price-input{grid-column:3;width:88px}
+      .cart-line-total{grid-column:4;min-width:62px}
+    }
+    .cart-actions{display:flex;gap:8px;margin-top:12px}
+    .cart-actions button{
+      flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700
+    }
+    .outline{background:#FAFAF8;border:1px solid var(--line)}
+    .save{background:var(--green);border:0;color:#fff}
+    .trash{flex:0 0 auto!important;border:1px solid var(--line);background:#FAFAF8;color:var(--orange)}
+    @media(max-width:560px){
+      .title-row{align-items:center}
+      .cart-summary-btn{padding:6px 8px;gap:6px}
+      .cart-summary-total{padding-left:7px}
+      .checkout-panel{width:100%}
+    }
+    .modal{
+      position:fixed;inset:0;background:rgba(28,35,51,.6);z-index:50;
+      display:none;align-items:flex-end
+    }
+    .modal.open{display:flex}
+    .modal-card{
+      width:100%;max-height:88vh;overflow:auto;background:#fff;border-radius:16px 16px 0 0;padding:18px
+    }
+    .modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    .modal-head strong{font-size:16px}
+    .close{border:0;background:none;font-size:22px}
+    .history-list{margin-top:12px}
+    .history-row{
+      display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line)
+    }
+    .item-name-button{
+      display:block;width:100%;padding:0;border:0;background:none;color:inherit;
+      text-align:left;cursor:pointer
+    }
+    .item-name-button:hover{text-decoration:underline}
+    body.drawer-open{overflow:hidden}
+    .product-drawer-backdrop{
+      position:fixed;inset:0;z-index:89;background:rgba(28,35,51,.45);
+      opacity:0;pointer-events:none;transition:opacity .22s ease
+    }
+    .product-drawer-backdrop.open{opacity:1;pointer-events:auto}
+    .product-drawer{
+      position:fixed;top:0;right:0;bottom:0;z-index:90;width:min(440px,94vw);
+      background:#fff;box-shadow:-10px 0 34px rgba(28,35,51,.22);
+      transform:translateX(105%);transition:transform .24s ease;
+      display:flex;flex-direction:column
+    }
+    .product-drawer.open{transform:translateX(0)}
+    .product-drawer-head{
+      position:sticky;top:0;z-index:2;display:flex;align-items:center;
+      justify-content:space-between;gap:12px;padding:16px 18px;
+      background:var(--ink);color:#fff
+    }
+    .product-drawer-head strong{
+      font-family:Arial Narrow,Arial,sans-serif;text-transform:uppercase;
+      letter-spacing:.5px;font-size:16px
+    }
+    .drawer-close{
+      width:36px;height:36px;border:0;border-radius:8px;background:#2A3247;
+      color:#fff;font-size:24px;line-height:1
+    }
+    .product-drawer-body{padding:18px;overflow:auto}
+    .drawer-image-wrap{
+      width:100%;height:220px;border:1px solid var(--line);border-radius:12px;
+      background:#FAFAF8;display:flex;align-items:center;justify-content:center;
+      overflow:hidden;margin-bottom:16px
+    }
+    .drawer-image{width:100%;height:100%;object-fit:contain;background:#fff}
+    .drawer-image-fallback{font-size:56px;color:var(--muted)}
+    .drawer-product-name{font-size:24px;line-height:1.15;margin:0 0 7px}
+    .drawer-category{
+      display:inline-block;background:#F4F3EF;border:1px solid var(--line);
+      border-radius:20px;padding:5px 9px;font-size:11px;font-weight:800;
+      text-transform:uppercase;letter-spacing:.4px;margin-bottom:14px
+    }
+    .drawer-price{
+      font-size:30px;font-weight:900;margin:4px 0 2px
+    }
+    .drawer-price-source{font-size:11px;color:var(--muted);margin-bottom:16px}
+    .drawer-product-link{
+      width:100%;
+      min-height:46px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:8px;
+      padding:11px 14px;
+      margin:0 0 16px;
+      border:0;
+      border-radius:9px;
+      background:var(--ink);
+      color:#fff;
+      text-decoration:none;
+      font-size:13px;
+      font-weight:900
+    }
+    .drawer-product-link:visited{color:#fff}
+    .drawer-product-link:hover{background:#2A3247}
+    .drawer-product-link-icon{font-size:16px;line-height:1}
+    .drawer-link-missing{
+      margin:0 0 16px;
+      padding:10px 12px;
+      border:1px dashed var(--line);
+      border-radius:8px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center
+    }
+    .drawer-section{
+      border-top:1px solid var(--line);padding-top:15px;margin-top:15px
+    }
+    .drawer-section-title{
+      font-size:11px;text-transform:uppercase;letter-spacing:.55px;
+      color:var(--muted);font-weight:900;margin-bottom:10px
+    }
+    .drawer-detail-grid{
+      display:grid;grid-template-columns:118px minmax(0,1fr);gap:9px 12px;
+      font-size:13px
+    }
+    .drawer-detail-label{color:var(--muted)}
+    .drawer-detail-value{font-weight:700;overflow-wrap:anywhere}
+    .drawer-receipt{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:12px;background:#F7F7F4;border:1px solid var(--line);
+      border-radius:7px;padding:8px 9px;margin-top:6px;overflow-wrap:anywhere
+    }
+    .drawer-description{font-size:14px;line-height:1.5;margin:0}
+    .drawer-stats{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
+    }
+    .drawer-stat{
+      background:#F7F7F4;border:1px solid var(--line);border-radius:9px;padding:10px
+    }
+    .drawer-stat span{display:block;color:var(--muted);font-size:10px;text-transform:uppercase}
+    .drawer-stat strong{display:block;font-size:16px;margin-top:3px}
+    .drawer-history-row{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:12px;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px
+    }
+    .drawer-history-row:last-child{border-bottom:0}
+    .drawer-quantity{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      position:sticky;bottom:-18px;background:#fff;border-top:1px solid var(--line);
+      margin:18px -18px -18px;padding:14px 18px
+    }
+    .drawer-list-tools{display:flex;flex-direction:column;gap:7px}
+    .drawer-list-pick{display:flex;align-items:center;gap:4px}
+    .drawer-list-pick button{
+      width:29px;height:29px;border:1px solid var(--line);border-radius:6px;
+      background:#FAFAF8;color:var(--muted);font-size:11px;font-weight:900
+    }
+    .drawer-list-pick button.selected{background:var(--ink);border-color:var(--ink);color:#fff}
+    .drawer-list-summary{font-size:10.5px;color:var(--muted);line-height:1.35}
+    .drawer-qty-controls{display:flex;align-items:center;gap:10px}
+    .drawer-qty-controls button{
+      width:38px;height:38px;border-radius:8px;font-size:20px;font-weight:900
+    }
+    .drawer-qty-minus{border:1px solid var(--line);background:#FAFAF8}
+    .drawer-qty-plus{border:0;background:var(--yellow)}
+    .drawer-qty-value{min-width:24px;text-align:center;font-weight:900}
+    @media(max-width:560px){
+      .product-drawer{width:100vw}
+      .drawer-image-wrap{height:190px}
+      .drawer-product-name{font-size:21px}
+    }
+    .toast{
+      position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:80;
+      background:var(--ink);color:#fff;padding:8px 16px;border-radius:20px;font-size:13px;font-weight:700;
+      display:none
+    }
+    .toast.show{display:block}
+    .hidden{display:none!important}
+    .data-source-panel{padding:10px 12px}
+    .data-source-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .sync-btn{border:0;background:var(--yellow);color:var(--ink);border-radius:7px;padding:8px 12px;font-size:12px;font-weight:800}
+    .small{font-size:11px;color:var(--muted)}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="title-row">
+      <div class="title">My Costco</div>
+      <button id="cartButton" class="cart-summary-btn" type="button" title="Open cart" aria-label="Open cart" disabled>
+        <span class="cart-summary-icon" aria-hidden="true">🛒</span>
+        <span id="cartCount" class="cart-summary-count">0</span>
+        <span id="headerCartTotal" class="cart-summary-total">$0.00</span>
+      </button>
+    </div>
+    <div class="top-actions">
+      <div class="search">
+        <span>⌕</span>
+        <input id="searchInput" placeholder="Search products..." />
+      </div>
+      <button id="repeatBtn" class="icon-btn dark-btn" title="Repeat last purchase">↻</button>
+      <button id="archiveBtn" class="icon-btn dark-btn archive-top-btn" title="Open archived products">
+        <span>Archive</span><span id="archiveCount" class="archive-count">0</span>
+      </button>
+      <a
+        id="chatgptReceiptLink"
+        class="icon-btn dark-btn chatgpt-link"
+        href="https://chatgpt.com/c/6a644194-02bc-83ea-bbe6-c96544ad20e3"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Open ChatGPT to analyze new receipts"
+        aria-label="Open ChatGPT receipt analysis chat"
+      >
+        <span class="chatgpt-link-icon">✦</span>
+      </a>
+
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="panel data-source-panel">
+      <div class="data-source-row">
+        <div>
+          <div class="panel-title" style="margin-bottom:3px">Product Database</div>
+          <div id="sheetStatus" class="small">Loading products from Google Sheet...</div>
+        </div>
+        <button id="refreshSheetBtn" class="sync-btn">Refresh</button>
+      </div>
+    </section>
+
+    <section id="runningLowPanel" class="panel running-low-panel">
+      <button
+        id="runningLowToggle"
+        class="running-low-toggle"
+        type="button"
+        aria-expanded="true"
+        aria-controls="runningLowContent"
+      >
+        <span class="running-low-toggle-title">Running Low</span>
+        <span class="running-low-toggle-meta">
+          <span id="runningLowCount">0 items</span>
+          <span class="running-low-toggle-arrow">▼</span>
+        </span>
+      </button>
+      <div id="runningLowContent" class="running-low-content">
+        <div id="suggestions" class="suggestions"></div>
+      </div>
+    </section>
+
+    <div id="categoriesRoot"></div>
+  </main>
+</div>
+
+<div id="checkoutModal" class="checkout-modal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+  <section class="checkout-panel">
+    <div class="checkout-head">
+      <div class="checkout-head-copy">
+        <strong id="checkoutTitle">Your Cart</strong>
+        <span id="checkoutSummary">0 items</span>
+      </div>
+      <button id="checkoutClose" class="checkout-close" type="button" aria-label="Close cart">×</button>
+    </div>
+    <div id="cartSheet" class="cart-sheet">
+    <div id="cartItems"></div>
+    <div class="cart-total-row"><span>Estimated Total</span><strong id="cartTotal">$0.00</strong></div>
+    <div class="small" style="margin-top:8px">The estimate uses your latest receipt price, a Google Sheet price when available, or a Costco online estimate. Enter the actual paid price to update the total and save it to price history.</div>
+    <div class="cart-actions">
+      <button id="copyBtn" class="outline">Copy List</button>
+      <button id="saveOrderBtn" class="save">Save Order</button>
+      <button id="clearBtn" class="trash">🗑</button>
+    </div>
+    </div>
+  </section>
+</div>
+
+<div id="archiveModal" class="modal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <strong>Archived Products</strong>
+      <button class="close" data-close="archiveModal">×</button>
+    </div>
+    <div class="restore-all-row">
+      <button id="restoreAllBtn" class="restore-all-btn" type="button">Restore All</button>
+    </div>
+    <div id="archiveItems" class="archive-list"></div>
+  </div>
+</div>
+
+<div id="productDrawerBackdrop" class="product-drawer-backdrop" data-close-drawer="1"></div>
+<aside id="productDrawer" class="product-drawer" role="dialog" aria-modal="true" aria-labelledby="productDrawerTitle">
+  <div class="product-drawer-head">
+    <strong id="productDrawerTitle">Product Details</strong>
+    <button id="productDrawerClose" class="drawer-close" type="button" aria-label="Close product details" data-close-drawer="1">×</button>
+  </div>
+  <div id="productDrawerContent" class="product-drawer-body"></div>
+</aside>
+<div id="toast" class="toast"></div>
+
+<script>
+/* =========================================================
+   QUICK SETTINGS
+   Fill these here or use the Settings button in the app.
+   ========================================================= */
+const CONFIG = {
+  GOOGLE_SHEET_URL: "https://docs.google.com/spreadsheets/d/12wRBORBwDEmoUxI3I4yCKOL1usx5JZkWpqD55weFVLM/edit?gid=0",
+  GOOGLE_SHEET_TAB: "Items",
+  GOOGLE_SHEET_GID: "0",
+  GOOGLE_SHEET_API_URL: "",
+  DROPBOX_UPLOAD_URL: "https://content.dropboxapi.com/2/files/upload",
+  DROPBOX_TOKEN: "",
+  RECEIPT_AI_URL: ""
+};
+
+/* Product images. Add more item IDs and image URLs here. */
+const PRODUCT_IMAGES = {
+  "croissants": {
+    src: "https://www.dropbox.com/scl/fi/t9jho6ypqomz9hes4u6mg/Butter-Croissants-1199652.webp?rlkey=ehb95xnehgvtq5kvb2ev6vm16&raw=1",
+    fallback: "https://dl.dropboxusercontent.com/scl/fi/t9jho6ypqomz9hes4u6mg/Butter-Croissants-1199652.webp?rlkey=ehb95xnehgvtq5kvb2ev6vm16"
+  }
+};
+
+const DEFAULT_CATEGORIES = [
+  {
+    id:"dairy", name:"Dairy & Eggs", items:[
+      {id:"eggs-cage-free",name:"Kirkland Cage Free Eggs",receipt:["637598 - KS CAGE FREE"],unit:"pack",defaultInterval:12},
+      {id:"egg-whites",name:"Kirkland Egg Whites",receipt:["1063232 - KS EGG WHITE"],unit:"pack",defaultInterval:20},
+      {id:"whole-milk",name:"Whole Milk",receipt:["3 - WHOLE MILK"],unit:"pack",defaultInterval:7},
+      {id:"sour-cream",name:"Sour Cream",receipt:["331222 - SOUR CREAM"],unit:"pack",defaultInterval:18},
+      {id:"havarti",name:"Sliced Havarti Cheese",receipt:["2006243 - CSTLOHAVARTI"],unit:"pack",defaultInterval:21},
+      {id:"mozzarella",name:"Kosher Mozzarella",receipt:["406852 - KOSHER MOZZ"],unit:"pack",defaultInterval:21},
+      {id:"provolone",name:"Sliced Provolone",receipt:["2049016 - PROVOLO SLCD"],unit:"pack",defaultInterval:21},
+      {id:"yogurt",name:"Activia Variety Yogurt",receipt:["1388472 - ACTIVIA VRTY"],unit:"pack",defaultInterval:10},
+      {id:"butter-unsalted",name:"Kirkland Unsalted Butter Quarters",receipt:["384962 - KS U/S QTRS"],unit:"pack",defaultInterval:30},
+      {id:"ks-fr-2dz",name:"Kirkland FR 2DZ",receipt:["1738408 - KS FR 2DZ"],unit:"pack",defaultInterval:18}
+    ]
+  },
+  {
+    id:"meat-fish", name:"Meat, Poultry & Seafood", items:[
+      {id:"fryer-thighs",name:"Chicken Thighs",receipt:["33845 - FRYER THIGHS","32168 - FRYER THIGHS","47737 - FRYER THIGHS"],unit:"lb",defaultInterval:14},
+      {id:"thighs-bs",name:"Boneless Skinless Chicken Thighs",receipt:["22041 - B/S THIGH"],unit:"lb",defaultInterval:14},
+      {id:"whole-fryer",name:"Whole Chicken",receipt:[],unit:"pc",defaultInterval:18},
+      {id:"rotisserie",name:"Rotisserie Chicken",receipt:["87745 - ROTISSERIE"],unit:"pc",defaultInterval:14},
+      {id:"drumsticks",name:"Chicken Drumsticks",receipt:["47739 - DRUMSTICKS"],unit:"lb",defaultInterval:16},
+      {id:"ground-turkey",name:"Ground Turkey",receipt:["15698 - GRND TURKEY"],unit:"pack",defaultInterval:18},
+      {id:"turkey-breast",name:"Kirkland Turkey Breast",receipt:["47500 - KS TRKY BRST"],unit:"lb",defaultInterval:24},
+      {id:"ground-beef",name:"Ground Beef",receipt:[],unit:"lb",defaultInterval:18},
+      {id:"salmon-fresh",name:"Kirkland Salmon",receipt:["1267000 - KS SALMON","7070 - KS SALMON"],unit:"pack",defaultInterval:16},
+      {id:"atlantic-salmon",name:"Boneless Skinless Atlantic Salmon",receipt:["96493 - B/S ATL SALM"],unit:"lb",defaultInterval:16},
+      {id:"sockeye-salmon",name:"Kirkland Sockeye Salmon",receipt:["1644309 - KS SOCKEYE"],unit:"pack",defaultInterval:20},
+      {id:"steelhead",name:"Steelhead",receipt:["27201 - STEELHEAD"],unit:"lb",defaultInterval:18},
+      {id:"salmon",name:"Salmon",receipt:["29767 - SALMON"],unit:"lb",defaultInterval:18},
+      {id:"salmon-smoked",name:"Smoked Salmon",receipt:[],unit:"pack",defaultInterval:24},
+      {id:"sardines",name:"Sardines",receipt:["7554 - SARDINES"],unit:"pack",defaultInterval:30},
+      {id:"albacore",name:"Bumble Bee Albacore Tuna",receipt:["350071 - BB ALBACORE"],unit:"pack",defaultInterval:35},
+      {id:"pork-belly",name:"Pork Belly",receipt:["18316 - PORK BELLY"],unit:"lb",defaultInterval:24},
+      {id:"st-louis-ribs",name:"St. Louis Ribs",receipt:["45510 - ST.L RIBS"],unit:"lb",defaultInterval:30},
+      {id:"ks-brats",name:"Kirkland Brats",receipt:["1141000 - KS BRATS"],unit:"pack",defaultInterval:30},
+      {id:"prosciutto",name:"Prosciutto",receipt:["1322805 - PROCUITTO","1320300 - PROS DIPARMA"],unit:"pack",defaultInterval:20},
+      {id:"ham-rolls",name:"Ham Rolls",receipt:["868210 - HAM ROLLS"],unit:"pack",defaultInterval:20},
+      {id:"garcia-tapas",name:"Garcia Tapas",receipt:["596219 - GARCIA TAPAS"],unit:"pack",defaultInterval:24}
+    ]
+  },
+  {
+    id:"produce", name:"Produce", items:[
+      {id:"avocado",name:"Avocados",receipt:["647465 - AVOCADOS"],unit:"pack",defaultInterval:8},
+      {id:"bananas",name:"Bananas",receipt:["30669 - BANANAS"],unit:"bunch",defaultInterval:6},
+      {id:"organic-bananas",name:"Organic Bananas",receipt:["2619 - ORG BANANAS"],unit:"bunch",defaultInterval:6},
+      {id:"mandarins",name:"Mandarins",receipt:["1801 - MANDARINS"],unit:"pack",defaultInterval:10},
+      {id:"apples-gala",name:"Fuji Apples, 4 lb",receipt:["7947 - 4LB FUJI"],unit:"pack",defaultInterval:14},
+      {id:"red-grapes",name:"Red Grapes",receipt:["5276 - RED GRAPES"],unit:"pack",defaultInterval:9},
+      {id:"green-grapes",name:"Green Grapes",receipt:["47825 - GREEN GRAPES"],unit:"pack",defaultInterval:9},
+      {id:"blueberries",name:"Blueberries",receipt:["57554 - BLUEBERRIES"],unit:"pack",defaultInterval:7},
+      {id:"strawberries",name:"Strawberries",receipt:["27003 - STRAWBERRIES"],unit:"pack",defaultInterval:7},
+      {id:"raspberries",name:"Raspberries",receipt:["56366 - RASPBERRIES"],unit:"pack",defaultInterval:7},
+      {id:"blackberries",name:"Blackberries",receipt:["702669 - BLACKBERRIES"],unit:"pack",defaultInterval:7},
+      {id:"cherries",name:"Cherries",receipt:["2534 - CHERRIES"],unit:"pack",defaultInterval:10},
+      {id:"red-plums",name:"Red Plums",receipt:["2674 - RED PLUMS"],unit:"pack",defaultInterval:10},
+      {id:"premium-plums",name:"Premium Plums",receipt:["6021 - PREM. PLUMS"],unit:"pack",defaultInterval:10},
+      {id:"spinach",name:"Organic Spinach",receipt:["96716 - ORG SPINACH"],unit:"pack",defaultInterval:7},
+      {id:"romaine",name:"Romaine",receipt:["39036 - ROMAINE"],unit:"pack",defaultInterval:8},
+      {id:"yellow-onion",name:"Yellow Onions",receipt:["7812 - YELLOW ONION"],unit:"pack",defaultInterval:21},
+      {id:"red-onions",name:"Red Onions",receipt:["9218 - RED ONIONS"],unit:"pack",defaultInterval:21},
+      {id:"potatoes",name:"Potatoes",receipt:["5938 - POTATOES"],unit:"pack",defaultInterval:25},
+      {id:"baker-potatoes",name:"Baker Potatoes, 10 lb",receipt:["7445 - 10LB BAKERS"],unit:"pack",defaultInterval:25},
+      {id:"red-potatoes",name:"Red Potatoes",receipt:["83505 - RED POTATOES"],unit:"pack",defaultInterval:25},
+      {id:"carrots",name:"Organic Carrots, 6 lb",receipt:["1352 - OG CARROT6LB","412 - ORG. CARROTS"],unit:"pack",defaultInterval:18},
+      {id:"mini-cucumbers",name:"Mini Cucumbers",receipt:["720650 - MINI CUKES"],unit:"pack",defaultInterval:8},
+      {id:"organic-cocktail-cukes",name:"Organic Cocktail Cucumbers",receipt:["1569244 - ORG CTL CUKE"],unit:"pack",defaultInterval:8},
+      {id:"cocktail-tomatoes",name:"Cocktail Tomatoes",receipt:["25595 - COCKTAIL TOM"],unit:"pack",defaultInterval:8},
+      {id:"cherry-tom",name:"Cherry Tomatoes",receipt:["1895 - CHERRY TOV"],unit:"pack",defaultInterval:8},
+      {id:"roma-tomatoes",name:"Roma Tomatoes",receipt:["1344 - ROMA TOMATO"],unit:"pack",defaultInterval:8},
+      {id:"tomato-medley",name:"Tomato Medley",receipt:["21046 - TOMATO MEDLE"],unit:"pack",defaultInterval:8},
+      {id:"mixed-peppers",name:"Mixed Peppers",receipt:["60357 - MIXED PEPPER"],unit:"pack",defaultInterval:9},
+      {id:"lollipeppers",name:"Lollipeppers",receipt:["7367 - LOLLIPEPPERS"],unit:"pack",defaultInterval:9},
+      {id:"sweet-corn",name:"Sweet Corn",receipt:["38742 - SWEET CORN"],unit:"pack",defaultInterval:10}
+    ]
+  },
+  {
+    id:"bakery-pantry", name:"Bakery & Pantry", items:[
+      {id:"olive-oil",name:"Kirkland Olive Oil",receipt:["1789247 - KS OLIVE OIL"],unit:"bottle",defaultInterval:60},
+      {id:"honey",name:"Kirkland Wildflower Honey",receipt:["1347776 - KS WD FL HNY"],unit:"pack",defaultInterval:50},
+      {id:"mayo",name:"Hellmann's Mayonnaise",receipt:["414 - HELLMAN MAYO"],unit:"pack",defaultInterval:40},
+      {id:"sugar-10lb",name:"Sugar, 10 lb",receipt:["355844 - 10LB SUGAR"],unit:"pack",defaultInterval:45},
+      {id:"flour-20lb",name:"Flour, 2 x 10 lb",receipt:["559753 - 2/10# FLOUR"],unit:"pack",defaultInterval:45},
+      {id:"ks-baguette",name:"Kirkland Baguette",receipt:["1830455 - KS BAGUETTE"],unit:"pack",defaultInterval:14},
+      {id:"garlic-parm-baguette",name:"Garlic Parmesan Baguette",receipt:["1960751 - GAR PARM BAG"],unit:"pack",defaultInterval:14},
+      {id:"croissants",name:"Butter Croissants",receipt:["1199652 - BUTER CROISS"],unit:"pack",defaultInterval:14},
+      {id:"kernel-corn",name:"Del Monte Kernel Corn",receipt:["425349 - DM KRNL CORN"],unit:"pack",defaultInterval:30},
+      {id:"gefen-beets",name:"Gefen Beets",receipt:["1966375 - GEFEN BEETS"],unit:"pack",defaultInterval:30},
+      {id:"asaro-olives",name:"Asaro Olives",receipt:["1307136 - ASARO OLIVES"],unit:"pack",defaultInterval:30},
+      {id:"barilla",name:"Barilla Pasta",receipt:[],unit:"pack",defaultInterval:30},
+      {id:"nuts",name:"Kirkland Unsalted Nuts",receipt:[],unit:"pack",defaultInterval:30}
+    ]
+  },
+  {
+    id:"snacks-deli", name:"Snacks, Dips & Deli", items:[
+      {id:"biscoff",name:"Biscoff",receipt:["549797 - BISCOFF"],unit:"pack",defaultInterval:30},
+      {id:"boomchickpop",name:"Boom Chicka Pop",receipt:["1384432 - BOOMCHICKPOP"],unit:"pack",defaultInterval:25},
+      {id:"skinny-pop",name:"Organic SkinnyPop",receipt:["1150189 - ORG SKINYPOP"],unit:"pack",defaultInterval:25},
+      {id:"choc-caramel",name:"Chocolate Caramel",receipt:["607021 - CHOC CARAMEL"],unit:"pack",defaultInterval:30},
+      {id:"jalapeno-dip",name:"Jalapeno Dip",receipt:["194435 - JALAPENO DIP"],unit:"pack",defaultInterval:20}
+    ]
+  },
+  {
+    id:"drinks", name:"Drinks", items:[
+      {id:"lipton-tea",name:"Lipton Tea",receipt:["251767 - LIPTON TEA"],unit:"pack",defaultInterval:30},
+      {id:"diet-coke",name:"Diet Coke",receipt:["854342 - *DIET COKE**"],unit:"pack",defaultInterval:20},
+      {id:"tropicana-oj",name:"Tropicana Orange Juice",receipt:["1731084 - TROPICANA OJ"],unit:"pack",defaultInterval:15},
+      {id:"spindrift",name:"Spindrift",receipt:["1993061 - SPINDRIFT"],unit:"pack",defaultInterval:20},
+      {id:"tasters-choice",name:"Taster's Choice Regular",receipt:["1244454 - TASTER'S REG"],unit:"pack",defaultInterval:45},
+      {id:"water-40pk",name:"Bottled Water, 40 Pack",receipt:["782796 - ***KSWTR40PK","1009982 - *40/.5WATER*"],unit:"pack",defaultInterval:14}
+    ]
+  },
+  {
+    id:"household-other", name:"Household & Other Receipt Items", items:[
+      {id:"dove-advanced",name:"Dove Advanced",receipt:["1800413 - DOVE ADV"],unit:"pack",defaultInterval:45},
+      {id:"classic-blue",name:"Classic Blue",receipt:["1627770 - CLASSIC BLUE"],unit:"pack",defaultInterval:30},
+      {id:"bk-sticker",name:"BK Sticker",receipt:["1966308 - BK STICKER"],unit:"pc",defaultInterval:30}
+    ]
+  }
+];
+
+const DEFAULT_PRICE_HISTORY = {"lipton-tea":[{"date":"2026-07-17","price":11.99}],"bk-sticker":[{"date":"2026-07-17","price":13.79}],"sour-cream":[{"date":"2026-07-17","price":5.59},{"date":"2026-06-16","price":5.59},{"date":"2026-05-11","price":5.59}],"honey":[{"date":"2026-07-17","price":12.99},{"date":"2026-05-26","price":12.99}],"carrots":[{"date":"2026-07-17","price":7.49}],"kernel-corn":[{"date":"2026-07-17","price":11.99}],"albacore":[{"date":"2026-07-17","price":16.79}],"egg-whites":[{"date":"2026-07-17","price":11.29},{"date":"2026-06-16","price":11.29},{"date":"2026-05-26","price":12.29}],"diet-coke":[{"date":"2026-07-17","price":14.49},{"date":"2026-06-16","price":19.29}],"ks-baguette":[{"date":"2026-07-17","price":4.99},{"date":"2026-06-16","price":4.99},{"date":"2026-05-11","price":4.99}],"tomato-medley":[{"date":"2026-07-17","price":7.29},{"date":"2026-05-07","price":6.29}],"ground-turkey":[{"date":"2026-07-17","price":25.49}],"eggs-cage-free":[{"date":"2026-07-17","price":3.39},{"date":"2026-06-16","price":3.29},{"date":"2026-05-26","price":3.29}],"atlantic-salmon":[{"date":"2026-07-17","price":51.0},{"date":"2026-05-26","price":22.86}],"raspberries":[{"date":"2026-07-17","price":4.79},{"date":"2026-06-16","price":4.49},{"date":"2026-05-26","price":4.49},{"date":"2026-05-11","price":4.99},{"date":"2026-05-07","price":3.99}],"fryer-thighs":[{"date":"2026-07-17","price":16.96},{"date":"2026-06-16","price":10.37},{"date":"2026-05-26","price":17.02},{"date":"2026-05-11","price":16.63}],"romaine":[{"date":"2026-07-17","price":6.99}],"thighs-bs":[{"date":"2026-07-17","price":28.62},{"date":"2026-06-16","price":31.06},{"date":"2026-05-26","price":27.81},{"date":"2026-05-11","price":24.13}],"yellow-onion":[{"date":"2026-07-17","price":3.99},{"date":"2026-06-16","price":3.79}],"prosciutto":[{"date":"2026-07-17","price":11.29},{"date":"2026-06-16","price":11.29},{"date":"2026-05-26","price":11.29},{"date":"2026-05-11","price":11.29},{"date":"2026-05-07","price":14.69}],"mandarins":[{"date":"2026-07-17","price":4.69}],"lollipeppers":[{"date":"2026-07-17","price":5.99},{"date":"2026-05-07","price":6.99}],"drumsticks":[{"date":"2026-07-17","price":8.01}],"salmon-fresh":[{"date":"2026-07-17","price":24.49},{"date":"2026-05-26","price":24.49},{"date":"2026-05-11","price":24.49},{"date":"2026-05-07","price":24.49}],"roma-tomatoes":[{"date":"2026-07-17","price":5.99}],"sweet-corn":[{"date":"2026-07-17","price":6.99},{"date":"2026-06-16","price":6.99}],"provolone":[{"date":"2026-07-17","price":7.49},{"date":"2026-06-16","price":7.49},{"date":"2026-05-26","price":7.49}],"mini-cucumbers":[{"date":"2026-07-17","price":6.99},{"date":"2026-06-16","price":6.99},{"date":"2026-05-26","price":6.99},{"date":"2026-05-11","price":6.99}],"croissants":[{"date":"2026-07-17","price":5.99},{"date":"2026-05-26","price":5.99},{"date":"2026-05-11","price":0.0},{"date":"2026-05-07","price":5.99}],"ham-rolls":[{"date":"2026-07-17","price":3.79},{"date":"2026-05-11","price":3.79}],"rotisserie":[{"date":"2026-07-17","price":4.99},{"date":"2026-06-16","price":4.99},{"date":"2026-05-26","price":4.99},{"date":"2026-05-11","price":4.99}],"bananas":[{"date":"2026-07-17","price":1.49},{"date":"2026-05-26","price":1.49},{"date":"2026-05-11","price":1.49}],"pork-belly":[{"date":"2026-07-17","price":20.65},{"date":"2026-06-16","price":27.03}],"water-40pk":[{"date":"2026-07-17","price":7.39},{"date":"2026-06-16","price":3.99},{"date":"2026-05-26","price":3.99},{"date":"2026-05-07","price":3.99}],"whole-milk":[{"date":"2026-06-16","price":4.19},{"date":"2026-05-26","price":4.09},{"date":"2026-05-11","price":4.09}],"havarti":[{"date":"2026-06-16","price":8.99},{"date":"2026-05-11","price":8.99}],"mixed-peppers":[{"date":"2026-06-16","price":6.99},{"date":"2026-05-26","price":6.69},{"date":"2026-05-11","price":6.69}],"sockeye-salmon":[{"date":"2026-06-16","price":24.49}],"sardines":[{"date":"2026-06-16","price":10.99}],"strawberries":[{"date":"2026-06-16","price":5.99},{"date":"2026-05-07","price":4.49}],"steelhead":[{"date":"2026-06-16","price":19.48},{"date":"2026-05-26","price":21.05},{"date":"2026-05-11","price":17.35}],"salmon":[{"date":"2026-06-16","price":36.38}],"baker-potatoes":[{"date":"2026-06-16","price":4.99}],"mayo":[{"date":"2026-06-16","price":9.49}],"yogurt":[{"date":"2026-06-16","price":10.79},{"date":"2026-05-11","price":10.79}],"cocktail-tomatoes":[{"date":"2026-06-16","price":5.99},{"date":"2026-05-11","price":6.49}],"sugar-10lb":[{"date":"2026-06-16","price":7.59},{"date":"2026-05-26","price":7.59}],"spinach":[{"date":"2026-06-16","price":4.49}],"red-plums":[{"date":"2026-06-16","price":6.99}],"potatoes":[{"date":"2026-06-16","price":7.99},{"date":"2026-05-26","price":6.99}],"olive-oil":[{"date":"2026-06-16","price":19.69},{"date":"2026-05-11","price":19.69}],"red-grapes":[{"date":"2026-05-26","price":6.99}],"garlic-parm-baguette":[{"date":"2026-05-26","price":7.99}],"ks-brats":[{"date":"2026-05-26","price":11.99}],"premium-plums":[{"date":"2026-05-26","price":6.69}],"blueberries":[{"date":"2026-05-26","price":5.49},{"date":"2026-05-11","price":6.49},{"date":"2026-05-07","price":7.99}],"mozzarella":[{"date":"2026-05-26","price":9.89}],"blackberries":[{"date":"2026-05-26","price":4.99}],"st-louis-ribs":[{"date":"2026-05-26","price":21.57}],"gefen-beets":[{"date":"2026-05-26","price":8.99}],"dove-advanced":[{"date":"2026-05-26","price":16.99}],"cherry-tom":[{"date":"2026-05-26","price":7.99}],"organic-bananas":[{"date":"2026-05-26","price":2.19}],"red-onions":[{"date":"2026-05-11","price":4.89}],"butter-unsalted":[{"date":"2026-05-11","price":10.99}],"ks-fr-2dz":[{"date":"2026-05-11","price":4.89}],"biscoff":[{"date":"2026-05-11","price":7.99}],"flour-20lb":[{"date":"2026-05-11","price":10.49}],"turkey-breast":[{"date":"2026-05-11","price":22.13}],"red-potatoes":[{"date":"2026-05-11","price":5.29}],"apples-gala":[{"date":"2026-05-11","price":5.49}],"cherries":[{"date":"2026-05-07","price":10.89}],"boomchickpop":[{"date":"2026-05-07","price":5.99}],"garcia-tapas":[{"date":"2026-05-07","price":9.99}],"skinny-pop":[{"date":"2026-05-07","price":6.99}],"tropicana-oj":[{"date":"2026-05-07","price":11.69}],"green-grapes":[{"date":"2026-05-07","price":7.89}],"choc-caramel":[{"date":"2026-05-07","price":13.49}],"tasters-choice":[{"date":"2026-05-07","price":21.99}],"avocado":[{"date":"2026-05-07","price":4.69}],"asaro-olives":[{"date":"2026-05-07","price":9.49}],"classic-blue":[{"date":"2026-05-07","price":19.89}],"organic-cocktail-cukes":[{"date":"2026-05-07","price":6.49}],"spindrift":[{"date":"2026-05-07","price":19.69}],"jalapeno-dip":[{"date":"2026-05-07","price":9.69}]};
+
+/* Costco Same-Day estimates used only for products not present in the uploaded receipts. */
+const DEFAULT_ONLINE_PRICE_ESTIMATES = {"whole-fryer":{"price":15.26,"date":"2026-07-27","source":"costco-online","itemNumber":"30430"},"ground-beef":{"price":24.96,"date":"2026-07-27","source":"costco-online","itemNumber":"88739"},"salmon-smoked":{"price":20.31,"date":"2026-07-27","source":"costco-online","itemNumber":"19808"},"barilla":{"price":11.34,"date":"2026-07-27","source":"costco-online","itemNumber":"1136904"},"nuts":{"price":18.83,"date":"2026-07-27","source":"costco-online","itemNumber":"1652577"}};
+
+const LS = {
+  categories:"shopping:categories:v2",
+  cart:"shopping:cart:v1",
+  history:"shopping:priceHistory:v1",
+  orders:"shopping:orders:v1",
+  checked:"shopping:checked:v1",
+  cartPrices:"shopping:cartPrices:v1",
+  cart2:"shopping:cart2:v1",
+  cart3:"shopping:cart3:v1",
+  itemListSelection:"shopping:itemListSelection:v1",
+  listNames:"shopping:listNames:v1",
+  runningLowCollapsed:"shopping:runningLowCollapsed:v1",
+  archived:"shopping:archivedProducts:v1",
+  settings:"shopping:settings:v1",
+};
+
+let state = {
+  categories: loadLocal(LS.categories, DEFAULT_CATEGORIES),
+  cart: loadLocal(LS.cart, {}),
+  cart2: loadLocal(LS.cart2, {}),
+  cart3: loadLocal(LS.cart3, {}),
+  itemListSelection: loadLocal(LS.itemListSelection, {}),
+  listNames: loadLocal(LS.listNames, {1:"List 1",2:"List 2",3:"List 3"}),
+  runningLowCollapsed: loadLocal(LS.runningLowCollapsed, false)===true,
+  checked: loadLocal(LS.checked, {}),
+  cartPrices: loadLocal(LS.cartPrices, {}),
+  archived: loadLocal(LS.archived, {}),
+  priceHistory: loadLocal(LS.history, DEFAULT_PRICE_HISTORY),
+  orders: loadLocal(LS.orders, []),
+  query:"",
+  cartOpen:false,
+  settings: {
+    spreadsheetUrl:CONFIG.GOOGLE_SHEET_URL,
+    spreadsheetTab:CONFIG.GOOGLE_SHEET_TAB,
+    spreadsheetGid:CONFIG.GOOGLE_SHEET_GID,
+    sheetApiUrl:CONFIG.GOOGLE_SHEET_API_URL,
+    ...loadLocal(LS.settings, {})
+  }};
+
+/* The spreadsheet tab was renamed from Sheet1 to Items.
+   Replace the old value saved in this browser automatically. */
+if(!state.settings.spreadsheetTab || state.settings.spreadsheetTab==="Sheet1"){
+  state.settings.spreadsheetTab="Items";
+  localStorage.setItem(LS.settings,JSON.stringify(state.settings));
+}
+
+let activeDetailItemId=null;
+
+function loadLocal(key, fallback){
+  try{
+    const raw=localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  }catch{return fallback}
+}
+function saveLocal(){
+  localStorage.setItem(LS.categories,JSON.stringify(state.categories));
+  localStorage.setItem(LS.cart,JSON.stringify(state.cart));
+  localStorage.setItem(LS.cart2,JSON.stringify(state.cart2));
+  localStorage.setItem(LS.cart3,JSON.stringify(state.cart3));
+  localStorage.setItem(LS.itemListSelection,JSON.stringify(state.itemListSelection));
+  localStorage.setItem(LS.listNames,JSON.stringify(state.listNames));
+  localStorage.setItem(LS.runningLowCollapsed,JSON.stringify(state.runningLowCollapsed));
+  localStorage.setItem(LS.checked,JSON.stringify(state.checked));
+  localStorage.setItem(LS.cartPrices,JSON.stringify(state.cartPrices));
+  localStorage.setItem(LS.archived,JSON.stringify(state.archived));
+  localStorage.setItem(LS.history,JSON.stringify(state.priceHistory));
+  localStorage.setItem(LS.orders,JSON.stringify(state.orders));
+  localStorage.setItem(LS.settings,JSON.stringify(state.settings));
+}
+function toast(msg){
+  const el=document.getElementById("toast");
+  el.textContent=msg;el.classList.add("show");
+  clearTimeout(el._timer);
+  el._timer=setTimeout(()=>el.classList.remove("show"),1800);
+}
+function allItems(){
+  return state.categories.flatMap(c=>c.items.map(i=>{
+    i.categoryId=c.id;
+    i.categoryName=c.name;
+    return i;
+  }));
+}
+function ensureDefaultProductsPresent(){
+  DEFAULT_CATEGORIES.forEach(defaultCategory=>{
+    let category=state.categories.find(c=>c.id===defaultCategory.id);
+    if(!category){
+      category={id:defaultCategory.id,name:defaultCategory.name,items:[]};
+      state.categories.push(category);
+    }
+    const existingIds=new Set(category.items.map(item=>item.id));
+    defaultCategory.items.forEach(defaultItem=>{
+      if(!existingIds.has(defaultItem.id)){
+        category.items.push(JSON.parse(JSON.stringify(defaultItem)));
+      }
+    });
+  });
+  saveLocal();
+}
+function isArchived(itemId){
+  return Boolean(state.archived && state.archived[itemId]);
+}
+function archivedProducts(){
+  return allItems()
+    .filter(item=>isArchived(item.id))
+    .sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+}
+function archiveProduct(itemId){
+  const item=allItems().find(product=>product.id===itemId);
+  if(!item) return;
+  state.archived[itemId]={
+    archivedAt:new Date().toISOString(),
+    name:item.name||"",
+    itemNumber:item.itemNumber||receiptItemNumber(item)||""
+  };
+  delete state.cart[itemId];
+  delete state.cart2[itemId];
+  delete state.cart3[itemId];
+  delete state.itemListSelection[itemId];
+  delete state.checked[itemId];
+  delete state.checked[`1|${itemId}`];
+  delete state.checked[`2|${itemId}`];
+  delete state.checked[`3|${itemId}`];
+  delete state.cartPrices[itemId];
+  if(activeDetailItemId===itemId) closeItemDetail();
+  saveLocal();
+  render();
+  toast(`${item.name} moved to Archive`);
+}
+function restoreProduct(itemId){
+  const item=allItems().find(product=>product.id===itemId);
+  delete state.archived[itemId];
+  saveLocal();
+  render();
+  toast(`${item?.name||"Product"} restored`);
+}
+function restoreAllProducts(){
+  const count=Object.keys(state.archived||{}).length;
+  state.archived={};
+  saveLocal();
+  render();
+  toast(count?`${count} products restored`:"Archive is already empty");
+}
+function renderArchive(){
+  const items=archivedProducts();
+  const countEl=document.getElementById("archiveCount");
+  if(countEl) countEl.textContent=String(items.length);
+
+  const root=document.getElementById("archiveItems");
+  const restoreAll=document.getElementById("restoreAllBtn");
+  if(!root) return;
+  if(restoreAll) restoreAll.disabled=!items.length;
+
+  if(!items.length){
+    root.innerHTML=`<div class="archive-empty">No archived products yet.</div>`;
+    return;
+  }
+
+  root.innerHTML=items.map(item=>`
+    <div class="archive-item">
+      ${imageHtml(item,true)}
+      <div class="archive-item-copy">
+        <div class="archive-item-name">${escapeHtml(item.name)}</div>
+        <div class="archive-item-meta">
+          ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(item.categoryName||"Uncategorized")}
+        </div>
+        ${primaryReceipt(item)?`<div class="archive-item-meta">${escapeHtml(primaryReceipt(item))}</div>`:""}
+      </div>
+      <button type="button" class="restore-btn" data-restore="${item.id}">Restore</button>
+    </div>
+  `).join("");
+}
+function applyDefaultPricing(){
+  const items=allItems();
+  items.forEach(item=>{
+    const estimate=DEFAULT_ONLINE_PRICE_ESTIMATES[item.id];
+    if(estimate){
+      if(!item.itemNumber) item.itemNumber=estimate.itemNumber||"";
+      if(!(Number(item.estimatedPrice)>0)) item.estimatedPrice=estimate.price;
+      if(!item.priceSource) item.priceSource=estimate.source;
+      if(!item.priceDate) item.priceDate=estimate.date;
+    }
+    const defaults=DEFAULT_PRICE_HISTORY[item.id]||[];
+    if(defaults.length){
+      const existing=state.priceHistory[item.id]||[];
+      const byKey=new Map(existing.map(row=>[`${row.date}|${Number(row.price).toFixed(2)}`,row]));
+      defaults.forEach(row=>byKey.set(`${row.date}|${Number(row.price).toFixed(2)}`,row));
+      state.priceHistory[item.id]=[...byKey.values()].sort((a,b)=>b.date.localeCompare(a.date));
+    }
+  });
+  saveLocal();
+}
+function itemUnitPrice(item){
+  const sheetPrice=Number(item?.sheetPrice);
+  if(Number.isFinite(sheetPrice)&&sheetPrice>0) return sheetPrice;
+  const latest=sortedHistory(item?.id)[0]?.price;
+  if(Number.isFinite(Number(latest))&&Number(latest)>0) return Number(latest);
+  const estimate=Number(item?.estimatedPrice);
+  return Number.isFinite(estimate)&&estimate>0?estimate:0;
+}
+function receiptEntries(item){
+  if(Array.isArray(item.receipt)) return item.receipt.filter(Boolean);
+  return item.receipt ? [item.receipt] : [];
+}
+function primaryReceipt(item){
+  return receiptEntries(item)[0] || "";
+}
+function receiptSearchText(item){
+  return receiptEntries(item).join(" ").toLowerCase();
+}
+function receiptLinesHtml(item, className="item-receipt"){
+  return receiptEntries(item).map(line=>`<div class="${className}">${escapeHtml(line)}</div>`).join("");
+}
+function itemNumbersHtml(item, className="item-receipt"){
+  const numbers=[...new Set(
+    receiptEntries(item)
+      .map(line=>{
+        const match=String(line).match(/^\s*(\d+)/);
+        return match ? match[1] : "";
+      })
+      .filter(Boolean)
+  )];
+
+  if(!numbers.length && item.itemNumber){
+    numbers.push(String(item.itemNumber));
+  }
+
+  return numbers.length
+    ? `<div class="${className}">${numbers.map(escapeHtml).join(" / ")}</div>`
+    : "";
+}
+const LIST_NUMBERS=[1,2,3];
+
+function defaultListName(listNo){
+  return `List ${Number(listNo)}`;
+}
+function listName(listNo){
+  const customName=String(state.listNames?.[listNo]??"").trim();
+  return customName||defaultListName(listNo);
+}
+function cartFor(listNo){
+  const list=Number(listNo);
+  if(list===2) return state.cart2;
+  if(list===3) return state.cart3;
+  return state.cart;
+}
+function selectedList(id){
+  const list=Number(state.itemListSelection[id]||1);
+  return LIST_NUMBERS.includes(list)?list:1;
+}
+function setSelectedList(id,listNo){
+  const list=Number(listNo);
+  if(!LIST_NUMBERS.includes(list)) return;
+  state.itemListSelection[id]=list;
+  saveLocal();
+  renderSuggestions();
+  renderCategories();
+  if(activeDetailItemId===id) renderProductDrawer(id);
+}
+function qty(id,listNo=selectedList(id)){
+  return Number(cartFor(listNo)[id]||0);
+}
+function totalQty(id){
+  return LIST_NUMBERS.reduce((sum,listNo)=>sum+qty(id,listNo),0);
+}
+function checkedKey(listNo,id){
+  return `${Number(listNo)}|${id}`;
+}
+function isChecked(listNo,id){
+  return Boolean(state.checked[checkedKey(listNo,id)] || (Number(listNo)===1 && state.checked[id]));
+}
+function listSummaryHtml(itemId){
+  const badges=LIST_NUMBERS
+    .map(listNo=>({listNo,quantity:qty(itemId,listNo)}))
+    .filter(row=>row.quantity>0)
+    .map(row=>`<span class="list-mini-badge">List ${row.listNo}: ${row.quantity}</span>`)
+    .join("");
+  return badges?`<div class="item-list-summary">${badges}</div>`:"";
+}
+function listSummaryText(itemId){
+  const parts=LIST_NUMBERS
+    .map(listNo=>({listNo,quantity:qty(itemId,listNo)}))
+    .filter(row=>row.quantity>0)
+    .map(row=>`List ${row.listNo}: ${row.quantity}`);
+  return parts.join(" · ");
+}
+function setQty(id,value,listNo=selectedList(id)){
+  const list=Number(listNo);
+  const cart=cartFor(list);
+  const next=Math.max(0,Number(value)||0);
+
+  if(next<=0) delete cart[id];
+  else cart[id]=next;
+
+  if(totalQty(id)<=0){
+    delete state.cartPrices[id];
+    delete state.checked[id];
+    LIST_NUMBERS.forEach(number=>delete state.checked[checkedKey(number,id)]);
+  }
+
+  saveLocal();
+  render();
+  queueSync("setCart",{itemId:id,quantity:next,listNumber:list});
+}
+function sortedHistory(id){
+  return [...(state.priceHistory[id]||[])].sort((a,b)=>b.date.localeCompare(a.date));
+}
+function priceBadge(id){
+  const item=allItems().find(x=>x.id===id);
+  const sheetPrice=Number(item?.sheetPrice);
+  const h=sortedHistory(id);
+  if(Number.isFinite(sheetPrice) && sheetPrice>0){
+    const previous=h[0]?.price;
+    let delta="";
+    if(previous){
+      const d=+(sheetPrice-previous).toFixed(2);
+      if(Math.abs(d)>=.01) delta=` <span class="${d>0?"price-up":"price-down"}">${d>0?"↑":"↓"}$${Math.abs(d).toFixed(2)}</span>`;
+    }
+    return `<div class="price-badge">sheet price $${sheetPrice.toFixed(2)}${delta}</div>`;
+  }
+  if(h.length){
+    const latest=h[0],prev=h[1];
+    let delta="";
+    if(prev){
+      const d=+(latest.price-prev.price).toFixed(2);
+      if(Math.abs(d)>=.01) delta=` <span class="${d>0?"price-up":"price-down"}">${d>0?"↑":"↓"}$${Math.abs(d).toFixed(2)}</span>`;
+    }
+    return `<div class="price-badge">last paid $${Number(latest.price).toFixed(2)}${delta}</div>`;
+  }
+  const estimate=Number(item?.estimatedPrice);
+  if(Number.isFinite(estimate)&&estimate>0){
+    return `<div class="price-badge">online estimate $${estimate.toFixed(2)}</div>`;
+  }
+  return "";
+}
+
+function getLastPurchaseDate(itemId){
+  for(const order of [...state.orders].reverse()){
+    if(order.items.some(x=>x.id===itemId)) return order.date;
+  }
+  const h=sortedHistory(itemId);
+  return h[0]?.date||null;
+}
+function dayDiff(dateStr){
+  const then=new Date(dateStr+"T00:00:00");
+  return Math.floor((Date.now()-then.getTime())/86400000);
+}
+function getSuggestions(){
+  return allItems()
+    .filter(item=>!isArchived(item.id))
+    .map(item=>{
+      const last=getLastPurchaseDate(item.id);
+      if(!last) return null;
+      const elapsed=dayDiff(last);
+      const interval=item.defaultInterval||14;
+      const score=elapsed/interval;
+      return {...item,elapsed,interval,score};
+    })
+    .filter(Boolean)
+    .filter(x=>x.score>=.8 && !totalQty(x.id))
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,6);
+}
+
+function renderSuggestions(){
+  const root=document.getElementById("suggestions");
+  const arr=getSuggestions();
+  const panel=document.getElementById("runningLowPanel");
+  const toggle=document.getElementById("runningLowToggle");
+  const count=document.getElementById("runningLowCount");
+
+  if(panel) panel.classList.toggle("collapsed",state.runningLowCollapsed);
+  if(toggle) toggle.setAttribute("aria-expanded",String(!state.runningLowCollapsed));
+  if(count) count.textContent=`${arr.length} item${arr.length===1?"":"s"}`;
+  if(!arr.length){
+    root.innerHTML=`<div class="small">No items are clearly due for repurchase yet.</div>`;
+    return;
+  }
+  root.innerHTML=arr.map(x=>`
+    <div class="suggestion">
+      <div>
+        <strong>${escapeHtml(x.name)}</strong>
+        ${itemNumbersHtml(x)}
+        <small>last purchased ${x.elapsed} days ago, usually every ${x.interval} days</small>
+        ${listSummaryHtml(x.id)}
+      </div>
+      <div class="suggestion-actions">
+        <button type="button" class="suggestion-add" data-add-suggestion="${x.id}">Add</button>
+      </div>
+    </div>`).join("");
+}
+function normalizeImageUrl(value){
+  let url=String(value||"").trim();
+  if(!url) return "";
+  const imageFormula=url.match(/^=IMAGE\(\s*["']([^"']+)["']/i);
+  if(imageFormula) url=imageFormula[1];
+  const hyperlinkFormula=url.match(/^=HYPERLINK\(\s*["']([^"']+)["']/i);
+  if(hyperlinkFormula) url=hyperlinkFormula[1];
+  if(url.includes("dropbox.com/")){
+    url=url.replace(/[?&]dl=0\b/g,"").replace(/[?&]dl=1\b/g,"");
+    url+=(url.includes("?")?"&":"?")+"raw=1";
+  }
+  return url;
+}
+
+function normalizeProductLink(value){
+  let link=String(value??"").trim();
+  if(!link) return "";
+
+  const hyperlinkFormula=link.match(/^=HYPERLINK\(\s*["']([^"']+)["']/i);
+  if(hyperlinkFormula) link=hyperlinkFormula[1];
+
+  try{
+    const url=new URL(link);
+    if(url.protocol!=="https:" && url.protocol!=="http:") return "";
+    return url.href;
+  }catch{
+    return "";
+  }
+}
+function itemImageData(item){
+  const configured=item.imageUrl || PRODUCT_IMAGES[item.id] || "";
+  if(!configured) return {src:"",fallback:""};
+  if(typeof configured==="string") return {src:normalizeImageUrl(configured),fallback:""};
+  return {src:normalizeImageUrl(configured.src||""),fallback:normalizeImageUrl(configured.fallback||"")};
+}
+function imageHtml(item,cart=false){
+  const image=itemImageData(item);
+  const wrapClass=cart?"cart-photo-wrap":"item-photo-wrap";
+  const imgClass=cart?"cart-photo":"item-photo";
+  if(!image.src) return `<div class="${wrapClass}"><span class="item-photo-fallback">🛒</span></div>`;
+  return `<div class="${wrapClass}">
+    <img class="${imgClass}"
+      src="${escapeHtml(image.src)}"
+      data-fallback="${escapeHtml(image.fallback)}"
+      alt="${escapeHtml(item.name)}"
+      loading="lazy"
+      referrerpolicy="no-referrer"
+      onerror="
+        if(this.dataset.fallback && !this.dataset.fallbackUsed){
+          this.dataset.fallbackUsed='1';
+          this.src=this.dataset.fallback;
+        }else{
+          this.style.display='none';
+          this.nextElementSibling.style.display='inline';
+        }
+      ">
+    <span class="item-photo-fallback" style="display:none">🛒</span>
+  </div>`;
+}
+
+function renderCategories(){
+  const root=document.getElementById("categoriesRoot");
+  const q=state.query.trim().toLowerCase();
+  root.innerHTML=state.categories.map(cat=>{
+    const items=cat.items.filter(i=>!isArchived(i.id) && (!q||[i.name,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
+    if(!items.length) return "";
+    return `
+      <section class="category">
+        <div class="category-head">
+          <div class="category-name">${escapeHtml(cat.name)}</div>
+          <button data-add-custom="${cat.id}" title="Add custom item">⊕</button>
+        </div>
+        <div id="custom-${cat.id}" class="custom-row hidden">
+          <input placeholder="Product name" data-custom-input="${cat.id}" />
+          <button data-custom-save="${cat.id}">OK</button>
+        </div>
+        <div class="items">
+          ${items.map(item=>{
+            const active=totalQty(item.id)>0;
+            const activeList=selectedList(item.id);
+            const activeListQty=qty(item.id,activeList);
+            return `
+              <div class="item ${active?"active":""}">
+                <div class="item-content">
+                  ${imageHtml(item)}
+                  <div class="item-main">
+                    <button type="button" class="item-name item-name-button" data-detail="${item.id}">${escapeHtml(item.name)}</button>
+                    ${itemNumbersHtml(item)}
+                    <div class="item-unit">${item.weight?escapeHtml(item.weight):`Unit: ${escapeHtml(item.unit)}`}</div>
+                    ${item.description?`<div class="item-unit" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</div>`:""}
+                    ${priceBadge(item.id)}
+                    ${listSummaryHtml(item.id)}
+                  </div>
+                </div>
+                <div class="qty">
+                  <div class="list-pick" aria-label="Choose shopping list">
+                    ${LIST_NUMBERS.map(listNo=>`
+                      <button
+                        type="button"
+                        class="${activeList===listNo?"selected":""}"
+                        data-list-select="${item.id}|${listNo}"
+                        title="Add to List ${listNo}"
+                        aria-label="Choose List ${listNo}"
+                      >${listNo}</button>
+                    `).join("")}
+                  </div>
+                  ${activeListQty?`
+                    <button class="minus" data-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+                    <strong>${activeListQty}</strong>
+                    <button class="plus" data-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+                  `:`
+                    <button class="add" data-plus="${item.id}">Add</button>
+                  `}
+                  <button class="remove" data-archive="${item.id}" title="Move to Archive" aria-label="Archive ${escapeHtml(item.name)}">×</button>
+                </div>
+              </div>`;
+          }).join("")}
+        </div>
+      </section>`;
+  }).join("");
+}
+function renderCart(){
+  const itemCount=LIST_NUMBERS.reduce(
+    (total,listNo)=>total+Object.values(cartFor(listNo)).reduce((sum,value)=>sum+(Number(value)||0),0),
+    0
+  );
+  const nonEmptyLists=LIST_NUMBERS.filter(listNo=>Object.keys(cartFor(listNo)).some(id=>qty(id,listNo)>0)).length;
+
+  document.getElementById("cartCount").textContent=String(itemCount);
+  document.getElementById("cartButton").disabled=!itemCount;
+  document.getElementById("checkoutSummary").textContent=itemCount
+    ? `${itemCount} item${itemCount===1?"":"s"} · ${nonEmptyLists} list${nonEmptyLists===1?"":"s"}`
+    : "Your cart is empty";
+
+  if(!itemCount && state.cartOpen) closeCheckout();
+
+  const groups=LIST_NUMBERS.map(listNo=>{
+    const items=allItems().filter(item=>qty(item.id,listNo)>0);
+    if(!items.length) return "";
+
+    return `
+      <section class="cart-list-group" data-cart-list="${listNo}">
+        <div class="cart-list-head">
+          <label class="cart-list-name-editor" title="Rename this list">
+            <input
+              class="cart-list-name-input"
+              data-list-name="${listNo}"
+              type="text"
+              maxlength="40"
+              value="${escapeHtml(listName(listNo))}"
+              aria-label="Name for List ${listNo}"
+            />
+            <span class="cart-list-name-edit-icon" aria-hidden="true">✎</span>
+          </label>
+          <div class="cart-list-subtotal">Subtotal: <span id="listSubtotal${listNo}">$0.00</span></div>
+        </div>
+        ${items.map(item=>{
+          const quantity=qty(item.id,listNo);
+          const defaultPrice=itemUnitPrice(item);
+          const stored=state.cartPrices[item.id];
+          const unitPrice=stored!==undefined&&stored!==""?Number(stored):defaultPrice;
+          const lineTotal=(Number.isFinite(unitPrice)?unitPrice:0)*quantity;
+          const checked=isChecked(listNo,item.id);
+
+          return `
+            <div class="cart-item">
+              <div class="cart-row">
+                <div class="check ${checked?"done":""}" data-check="${listNo}|${item.id}">${checked?"✓":""}</div>
+                ${imageHtml(item,true)}
+                <div class="cart-copy">
+                  <div class="cart-name ${checked?"done":""}">${escapeHtml(item.name)}</div>
+                  ${receiptLinesHtml(item,"cart-receipt")}
+                  <div class="cart-add-another">
+                    <button
+                      type="button"
+                      class="cart-add-another-btn"
+                      data-cart-add-menu="${listNo}|${item.id}"
+                      aria-expanded="false"
+                    >+ Another List</button>
+                    <div class="cart-add-another-menu" role="menu">
+                      <div class="cart-add-another-label">Add one to</div>
+                      <div class="cart-add-another-options">
+                        ${LIST_NUMBERS.map(targetList=>`
+                          <button
+                            type="button"
+                            data-cart-add-to="${listNo}|${item.id}|${targetList}"
+                            role="menuitem"
+                            aria-label="Add one ${escapeHtml(item.name)} to List ${targetList}"
+                          >${targetList}</button>
+                        `).join("")}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="cart-list-pick" aria-label="Move product to another list">
+                  ${LIST_NUMBERS.map(targetList=>`
+                    <button
+                      type="button"
+                      class="${targetList===listNo?"selected":""}"
+                      data-cart-move="${listNo}|${item.id}|${targetList}"
+                      title="Move to List ${targetList}"
+                      aria-label="Move ${escapeHtml(item.name)} to List ${targetList}"
+                    >${targetList}</button>
+                  `).join("")}
+                </div>
+                <div class="cart-item-controls">
+                  <button type="button" class="cart-qty-minus" data-cart-minus="${listNo}|${item.id}" aria-label="Decrease quantity">−</button>
+                  <span class="cart-qty-value">${quantity}</span>
+                  <button type="button" class="cart-qty-plus" data-cart-plus="${listNo}|${item.id}" aria-label="Increase quantity">+</button>
+                </div>
+                <input
+                  class="price-input"
+                  data-price="${item.id}"
+                  data-price-list="${listNo}"
+                  type="text"
+                  inputmode="decimal"
+                  pattern="[0-9]*[.,]?[0-9]{0,2}"
+                  value="${unitPrice?unitPrice.toFixed(2):""}"
+                  placeholder="price $"
+                  aria-label="Unit price for ${escapeHtml(item.name)}"
+                />
+                <div class="cart-line-total" data-line-total="${listNo}|${item.id}">$${lineTotal.toFixed(2)}</div>
+                <button type="button" class="cart-remove-item" data-cart-remove="${listNo}|${item.id}" title="Remove from cart" aria-label="Remove ${escapeHtml(item.name)} from cart">×</button>
+              </div>
+            </div>`;
+        }).join("")}
+      </section>`;
+  }).join("");
+
+  document.getElementById("cartItems").innerHTML=groups;
+  updateCartTotal();
+}
+function updateCartTotal(){
+  let grandTotal=0;
+
+  LIST_NUMBERS.forEach(listNo=>{
+    let subtotal=0;
+
+    allItems().filter(item=>qty(item.id,listNo)>0).forEach(item=>{
+      const stored=state.cartPrices[item.id];
+      const price=stored!==undefined&&stored!==""?(parseFloat(stored)||0):itemUnitPrice(item);
+      const line=price*qty(item.id,listNo);
+      subtotal+=line;
+
+      const key=`${listNo}|${item.id}`;
+      const lineEl=[...document.querySelectorAll("[data-line-total]")]
+        .find(element=>element.dataset.lineTotal===key);
+      if(lineEl) lineEl.textContent=`$${line.toFixed(2)}`;
+    });
+
+    const subtotalEl=document.getElementById(`listSubtotal${listNo}`);
+    if(subtotalEl) subtotalEl.textContent=`$${subtotal.toFixed(2)}`;
+    grandTotal+=subtotal;
+  });
+
+  const totalEl=document.getElementById("cartTotal");
+  if(totalEl) totalEl.textContent=`$${grandTotal.toFixed(2)}`;
+  const headerTotalEl=document.getElementById("headerCartTotal");
+  if(headerTotalEl) headerTotalEl.textContent=`$${grandTotal.toFixed(2)}`;
+}
+function openCheckout(){
+  if(!Number(document.getElementById("cartCount").textContent)) return;
+  state.cartOpen=true;
+  document.getElementById("checkoutModal").classList.add("open");
+  document.body.classList.add("checkout-open");
+}
+function closeCheckout(){
+  state.cartOpen=false;
+  document.getElementById("checkoutModal").classList.remove("open");
+  document.body.classList.remove("checkout-open");
+}
+function render(){
+  renderSuggestions();
+  renderCategories();
+  renderCart();
+  renderArchive();
+  if(activeDetailItemId) renderProductDrawer(activeDetailItemId);
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));
+}
+
+async function api(action,payload={}){
+  const url=state.settings.sheetApiUrl;
+  if(!url) throw new Error("Google Sheet API URL is not configured");
+  const res=await fetch(url,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify({action,...payload})
+  });
+  if(!res.ok) throw new Error("API error");
+  return res.json();
+}
+function queueSync(action,payload){
+  if(!state.settings.sheetApiUrl) return;
+  api(action,payload).catch(()=>{});
+}
+function setSheetStatus(message,isError=false){
+  const el=document.getElementById("sheetStatus");
+  if(!el) return;
+  el.textContent=message;
+  el.style.color=isError?"var(--orange)":"var(--muted)";
+}
+function spreadsheetIdFromUrl(value){
+  const text=String(value||"").trim();
+  const match=text.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match?match[1]:text;
+}
+function parseCost(value){
+  if(typeof value==="number") return value;
+  const n=parseFloat(String(value||"").replace(/[$,]/g,""));
+  return Number.isFinite(n)?n:null;
+}
+function parseCsv(text){
+  const rows=[];
+  let row=[],cell="",quoted=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i],next=text[i+1];
+    if(ch==='"' && quoted && next==='"'){cell+='"';i++;continue}
+    if(ch==='"'){quoted=!quoted;continue}
+    if(ch===',' && !quoted){row.push(cell);cell="";continue}
+    if((ch==='\n'||ch==='\r') && !quoted){
+      if(ch==='\r'&&next==='\n') i++;
+      row.push(cell);cell="";
+      if(row.some(v=>String(v).trim()!=="")) rows.push(row);
+      row=[];continue;
+    }
+    cell+=ch;
+  }
+  row.push(cell);
+  if(row.some(v=>String(v).trim()!=="")) rows.push(row);
+  if(!rows.length) return [];
+  const headers=rows[0].map(x=>String(x).trim());
+  return rows.slice(1).map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??""])));
+}
+function parseGviz(text){
+  const first=text.indexOf("{");
+  const last=text.lastIndexOf("}");
+  if(first<0||last<first) throw new Error("Invalid Google Sheet response");
+  const data=JSON.parse(text.slice(first,last+1));
+  const table=data.table||{};
+  const headers=(table.cols||[]).map((c,i)=>String(c.label||c.id||`Column ${i+1}`).trim());
+  return (table.rows||[]).map(row=>{
+    const obj={};
+    headers.forEach((header,i)=>{
+      const cell=row.c?.[i];
+      obj[header]=cell?.v??cell?.f??"";
+    });
+    return obj;
+  });
+}
+async function fetchPublicSheetRows(){
+  const id=spreadsheetIdFromUrl(state.settings.spreadsheetUrl||CONFIG.GOOGLE_SHEET_URL);
+  const tab=state.settings.spreadsheetTab||CONFIG.GOOGLE_SHEET_TAB||"Items";
+  const gid=state.settings.spreadsheetGid||CONFIG.GOOGLE_SHEET_GID||"0";
+  if(!id) throw new Error("Spreadsheet ID is missing");
+
+  const gviz=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}&headers=1&_=${Date.now()}`;
+  try{
+    const res=await fetch(gviz,{cache:"no-store",credentials:"omit"});
+    if(!res.ok) throw new Error("Google Visualization request failed");
+    const rows=parseGviz(await res.text());
+    if(rows.length) return rows;
+  }catch(error){console.warn("GViz load failed",error)}
+
+  const csv=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/export?format=csv&gid=${encodeURIComponent(gid)}&_=${Date.now()}`;
+  const res=await fetch(csv,{cache:"no-store",credentials:"omit"});
+  if(!res.ok) throw new Error("Google Sheet CSV request failed");
+  return parseCsv(await res.text());
+}
+function sheetValue(row,names){
+  const keys=Object.keys(row||{});
+  let firstMatchedValue="";
+
+  for(const name of names){
+    const key=keys.find(k=>String(k).trim().toLowerCase()===String(name).trim().toLowerCase());
+    if(key===undefined) continue;
+
+    const value=row[key];
+    if(firstMatchedValue==="") firstMatchedValue=value;
+
+    if(value!==null && value!==undefined && String(value).trim()!==""){
+      return value;
+    }
+  }
+
+  return firstMatchedValue||"";
+}
+function receiptItemNumber(item){
+  const direct=String(item.itemNumber||"").trim();
+  if(direct) return direct;
+  const match=primaryReceipt(item).match(/^\s*(\d+)/);
+  return match?match[1]:"";
+}
+function slugify(value){
+  return String(value||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||`item-${Date.now()}`;
+}
+function mergeProductsFromRows(rows){
+  const cleanRows=(rows||[]).map(row=>({
+    name:String(sheetValue(row,["Item","Name","Product"] )||"").trim(),
+    itemNumber:String(sheetValue(row,["#","Item #","Item Number","SKU"] )||"").replace(/\.0$/,"" ).trim(),
+    cost:parseCost(sheetValue(row,["Cost","Price"])),
+    pic:normalizeImageUrl(sheetValue(row,["Pic Dropbox","Dropbox Pic","Pic URL","Pic","Picture","Image","Image URL","Photo"])),
+    weight:String(sheetValue(row,["Weight","Size","Unit"] )||"").trim(),
+    link:normalizeProductLink(sheetValue(row,["Link","Product Link","Costco Link","Official Link","Website","URL"])),
+    description:String(sheetValue(row,["Description","Details"] )||"").trim(),
+    category:String(sheetValue(row,["Category"] )||"").trim()
+  })).filter(r=>r.name||r.itemNumber);
+
+  state.categories.forEach(cat=>{cat.items=cat.items.filter(item=>item.source!=="google-sheet")});
+  const existing=allItems();
+  let updated=0,added=0;
+
+  cleanRows.forEach(row=>{
+    const itemNumber=row.itemNumber;
+    let item=existing.find(x=>itemNumber && receiptItemNumber(x)===itemNumber);
+    if(!item) item=existing.find(x=>x.name.toLowerCase()===row.name.toLowerCase());
+    if(item){
+      if(row.name) item.name=row.name;
+      if(itemNumber){
+        item.itemNumber=itemNumber;
+        if(!receiptEntries(item).length) item.receipt=[`${itemNumber} - ${row.name.toUpperCase()}`];
+      }
+      if(row.cost!==null){item.sheetPrice=row.cost;item.priceSource="sheet";}
+      if(row.pic){
+        item.imageUrl=row.pic;
+        item.imageSource="Google Sheet: Pic Dropbox";
+      }
+      if(row.weight){item.weight=row.weight;item.unit=row.weight}
+      if(row.link) item.productLink=row.link;
+      if(row.description) item.description=row.description;
+      updated++;
+      return;
+    }
+
+    const categoryName=row.category||"Google Sheet Products";
+    let cat=state.categories.find(c=>c.name.toLowerCase()===categoryName.toLowerCase());
+    if(!cat){
+      cat={id:`sheet-category-${slugify(categoryName)}`,name:categoryName,items:[]};
+      state.categories.push(cat);
+    }
+    const id=`sheet-${itemNumber||slugify(row.name)}`;
+    const created={
+      id,
+      name:row.name||`Costco Item ${itemNumber}`,
+      itemNumber,
+      receipt:itemNumber?[`${itemNumber} - ${(row.name||"ITEM").toUpperCase()}`]:[],
+      unit:row.weight||"pc",
+      weight:row.weight,
+      productLink:row.link,
+      description:row.description,
+      sheetPrice:row.cost,
+      priceSource:row.cost!==null?"sheet":"",
+      imageUrl:row.pic,
+      imageSource:row.pic?"Google Sheet: Pic Dropbox":"",
+      defaultInterval:14,
+      source:"google-sheet"
+    };
+    cat.items.push(created);
+    existing.push(created);
+    added++;
+  });
+  saveLocal();
+  return {rows:cleanRows.length,updated,added};
+}
+async function loadFromSheet(){
+  setSheetStatus("Loading products from Google Sheet...");
+  try{
+    let rows=[];
+    try{
+      rows=await fetchPublicSheetRows();
+    }catch(publicError){
+      if(!state.settings.sheetApiUrl) throw publicError;
+      const data=await api("getProducts");
+      rows=data.rows||data.products||data;
+    }
+    const result=mergeProductsFromRows(rows);
+    render();
+    setSheetStatus(`${result.rows} product row${result.rows===1?"":"s"} loaded · ${result.updated} updated · ${result.added} added`);
+    toast("Products refreshed from Google Sheets");
+  }catch(error){
+    console.error(error);
+    setSheetStatus("Could not read the Google Sheet. Confirm the tab is named Items and set Share → General access → Anyone with the link → Viewer.",true);
+    toast("Using saved product data");
+  }
+}
+
+function saveOrder(){
+  const items=[];
+
+  LIST_NUMBERS.forEach(listNo=>{
+    allItems().filter(item=>qty(item.id,listNo)>0).forEach(item=>{
+      const stored=state.cartPrices[item.id];
+      const price=stored!==undefined&&stored!==""?(parseFloat(stored)||0):itemUnitPrice(item);
+
+      items.push({
+        id:item.id,
+        name:item.name,
+        itemNumber:receiptItemNumber(item),
+        receipt:receiptEntries(item),
+        qty:qty(item.id,listNo),
+        list:listNo,
+        unit:item.unit,
+        weight:item.weight||"",
+        description:item.description||"",
+        imageUrl:itemImageData(item).src||"",
+        price:price||null
+      });
+    });
+  });
+
+  if(!items.length) return;
+
+  const date=new Date().toISOString().slice(0,10);
+  const pricesSaved=new Set();
+
+  items.forEach(item=>{
+    if(!item.price || pricesSaved.has(item.id)) return;
+    pricesSaved.add(item.id);
+
+    state.priceHistory[item.id]=state.priceHistory[item.id]||[];
+    const old=state.priceHistory[item.id].find(row=>row.date===date);
+    if(old) old.price=item.price;
+    else state.priceHistory[item.id].push({date,price:item.price});
+  });
+
+  const order={id:"order-"+Date.now(),date,items};
+  state.orders.push(order);
+  saveLocal();
+  queueSync("saveOrder",order);
+  toast("Order and all three lists saved");
+  render();
+}
+function repeatLastOrder(){
+  const last=state.orders[state.orders.length-1];
+  if(!last){
+    toast("No previous orders yet");
+    return;
+  }
+
+  state.cart={};
+  state.cart2={};
+  state.cart3={};
+
+  last.items
+    .filter(item=>!isArchived(item.id))
+    .forEach(item=>{
+      const listNo=LIST_NUMBERS.includes(Number(item.list))?Number(item.list):1;
+      cartFor(listNo)[item.id]=item.qty||1;
+    });
+
+  state.checked={};
+  saveLocal();
+  render();
+  toast("Last order loaded into its saved lists");
+}
+function copyList(){
+  const sections=[];
+  let grandTotal=0;
+
+  LIST_NUMBERS.forEach(listNo=>{
+    const items=allItems().filter(item=>qty(item.id,listNo)>0);
+    if(!items.length) return;
+    const currentListName=listName(listNo);
+
+    let subtotal=0;
+    const lines=items.map(item=>{
+      const stored=state.cartPrices[item.id];
+      const price=stored!==undefined&&stored!==""?(parseFloat(stored)||0):itemUnitPrice(item);
+      const lineTotal=price*qty(item.id,listNo);
+      subtotal+=lineTotal;
+
+      return `${item.name}${primaryReceipt(item)?` | ${primaryReceipt(item)}`:""} — ${qty(item.id,listNo)} ${item.weight||item.unit} × $${price.toFixed(2)} = $${lineTotal.toFixed(2)}`;
+    });
+
+    grandTotal+=subtotal;
+    sections.push([currentListName,...lines,`${currentListName} subtotal: $${subtotal.toFixed(2)}`].join("\n"));
+  });
+
+  const text=[...sections,`ESTIMATED TOTAL: $${grandTotal.toFixed(2)}`].join("\n\n");
+  navigator.clipboard?.writeText(text)
+    .then(()=>toast("All lists copied"))
+    .catch(()=>toast("Unable to copy"));
+}
+function clearCart(){
+  state.cart={};
+  state.cart2={};
+  state.cart3={};
+  state.checked={};
+  state.cartPrices={};
+  saveLocal();
+  render();
+  queueSync("clearCart",{allLists:true});
+}
+function productNumber(item){
+  if(item.itemNumber) return String(item.itemNumber);
+  const receipt=primaryReceipt(item);
+  const match=receipt.match(/^\s*([0-9]+)\s*-/);
+  return match?match[1]:"";
+}
+function currentPriceSource(item,hist){
+  const sheetPrice=Number(item.sheetPrice);
+  if(Number.isFinite(sheetPrice)&&sheetPrice>0) return "Google Sheet price";
+  if(hist.length) return "Latest receipt price";
+  if(Number(item.estimatedPrice)>0) return item.priceSource||"Online estimate";
+  return "Price not available";
+}
+function drawerImageHtml(item){
+  const image=itemImageData(item);
+  if(!image.src){
+    return `<div class="drawer-image-wrap"><span class="drawer-image-fallback">🛒</span></div>`;
+  }
+  return `<div class="drawer-image-wrap">
+    <img class="drawer-image"
+      src="${escapeHtml(image.src)}"
+      data-fallback="${escapeHtml(image.fallback)}"
+      alt="${escapeHtml(item.name)}"
+      referrerpolicy="no-referrer"
+      onerror="
+        if(this.dataset.fallback && !this.dataset.fallbackUsed){
+          this.dataset.fallbackUsed='1';
+          this.src=this.dataset.fallback;
+        }else{
+          this.style.display='none';
+          this.nextElementSibling.style.display='inline';
+        }
+      ">
+    <span class="drawer-image-fallback" style="display:none">🛒</span>
+  </div>`;
+}
+function productLinkHtml(item){
+  const link=normalizeProductLink(item.productLink||item.link||"");
+
+  if(!link){
+    return `<div class="drawer-link-missing">Official product link has not been added yet.</div>`;
+  }
+
+  let label="View Official Product Page";
+  try{
+    const hostname=new URL(link).hostname.toLowerCase();
+    if(hostname.includes("costco")) label="View Product on Costco";
+  }catch{}
+
+  return `<a
+    class="drawer-product-link"
+    href="${escapeHtml(link)}"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <span class="drawer-product-link-icon">↗</span>
+    <span>${escapeHtml(label)}</span>
+  </a>`;
+}
+function renderProductDrawer(itemId){
+  const item=allItems().find(x=>x.id===itemId);
+  if(!item){closeItemDetail();return}
+
+  const hist=sortedHistory(itemId);
+  const currentPrice=itemUnitPrice(item);
+  const avg=hist.length?hist.reduce((sum,row)=>sum+Number(row.price||0),0)/hist.length:null;
+  const min=hist.length?Math.min(...hist.map(row=>Number(row.price||0))):null;
+  const max=hist.length?Math.max(...hist.map(row=>Number(row.price||0))):null;
+  const latest=hist[0]||null;
+  const receipts=receiptEntries(item);
+  const itemNo=productNumber(item);
+  const activeList=selectedList(item.id);
+  const quantity=qty(item.id,activeList);
+  const allListsSummary=listSummaryText(item.id);
+  const lastPurchase=getLastPurchaseDate(item.id);
+  const interval=Number(item.defaultInterval)||null;
+  const priceSource=currentPriceSource(item,hist);
+
+  const historyHtml=hist.length
+    ? hist.map(row=>`<div class="drawer-history-row"><span>${escapeHtml(row.date)}</span><strong>$${Number(row.price).toFixed(2)}</strong></div>`).join("")
+    : `<div class="small">No purchase price history yet.</div>`;
+
+  const receiptHtml=receipts.length
+    ? receipts.map(line=>`<div class="drawer-receipt">${escapeHtml(line)}</div>`).join("")
+    : `<div class="small">No receipt name recorded.</div>`;
+
+  document.getElementById("productDrawerContent").innerHTML=`
+    ${drawerImageHtml(item)}
+    <h2 class="drawer-product-name">${escapeHtml(item.name)}</h2>
+    <div class="drawer-category">${escapeHtml(item.categoryName||"Uncategorized")}</div>
+
+    <div class="drawer-price">${currentPrice>0?`$${currentPrice.toFixed(2)}`:"—"}</div>
+    <div class="drawer-price-source">${escapeHtml(priceSource)}${item.priceDate?` · ${escapeHtml(item.priceDate)}`:""}</div>
+    ${productLinkHtml(item)}
+
+    <section class="drawer-section">
+      <div class="drawer-section-title">Product Information</div>
+      <div class="drawer-detail-grid">
+        <div class="drawer-detail-label">Item number</div>
+        <div class="drawer-detail-value">${itemNo?escapeHtml(itemNo):"—"}</div>
+
+        <div class="drawer-detail-label">Category</div>
+        <div class="drawer-detail-value">${escapeHtml(item.categoryName||"—")}</div>
+
+        <div class="drawer-detail-label">Weight / size</div>
+        <div class="drawer-detail-value">${escapeHtml(item.weight||item.unit||"—")}</div>
+
+        <div class="drawer-detail-label">Cart quantity</div>
+        <div class="drawer-detail-value">${quantity}</div>
+
+        <div class="drawer-detail-label">Last purchase</div>
+        <div class="drawer-detail-value">${lastPurchase?escapeHtml(lastPurchase):"—"}</div>
+
+        <div class="drawer-detail-label">Buy interval</div>
+        <div class="drawer-detail-value">${interval?`About every ${interval} days`:"—"}</div>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <div class="drawer-section-title">Receipt Name</div>
+      ${receiptHtml}
+    </section>
+
+    <section class="drawer-section">
+      <div class="drawer-section-title">Description</div>
+      <p class="drawer-description">${item.description?escapeHtml(item.description):"No description added yet."}</p>
+    </section>
+
+    <section class="drawer-section">
+      <div class="drawer-section-title">Price Summary</div>
+      <div class="drawer-stats">
+        <div class="drawer-stat"><span>Current</span><strong>${currentPrice>0?`$${currentPrice.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>Last paid</span><strong>${latest?`$${Number(latest.price).toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>Average</span><strong>${avg!==null?`$${avg.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>Lowest</span><strong>${min!==null?`$${min.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>Highest</span><strong>${max!==null?`$${max.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>Records</span><strong>${hist.length}</strong></div>
+      </div>
+    </section>
+
+    <section class="drawer-section">
+      <div class="drawer-section-title">Price History</div>
+      ${historyHtml}
+    </section>
+
+    <div class="drawer-quantity">
+      <div class="drawer-list-tools">
+        <div style="font-size:12px;color:var(--muted)">Shopping List ${activeList}</div>
+        <div class="drawer-list-pick">
+          ${LIST_NUMBERS.map(listNo=>`
+            <button
+              type="button"
+              class="${activeList===listNo?"selected":""}"
+              data-list-select="${item.id}|${listNo}"
+              aria-label="Choose List ${listNo}"
+            >${listNo}</button>
+          `).join("")}
+        </div>
+        <strong>${quantity?`${quantity} ${escapeHtml(item.unit||"")}`:"Not added"}</strong>
+        ${allListsSummary?`<div class="drawer-list-summary">${escapeHtml(allListsSummary)}</div>`:""}
+      </div>
+      <div class="drawer-qty-controls">
+        <button type="button" class="drawer-qty-minus" data-drawer-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+        <span class="drawer-qty-value">${quantity}</span>
+        <button type="button" class="drawer-qty-plus" data-drawer-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+      </div>
+    </div>
+  `;
+}
+function showItemDetail(itemId){
+  activeDetailItemId=itemId;
+  renderProductDrawer(itemId);
+  document.getElementById("productDrawer").classList.add("open");
+  document.getElementById("productDrawerBackdrop").classList.add("open");
+  document.body.classList.add("drawer-open");
+}
+function closeItemDetail(){
+  activeDetailItemId=null;
+  document.getElementById("productDrawer").classList.remove("open");
+  document.getElementById("productDrawerBackdrop").classList.remove("open");
+  document.body.classList.remove("drawer-open");
+}
+
+document.addEventListener("click",e=>{
+  const t=e.target;
+  const cartAddMenuButton=t.closest("[data-cart-add-menu]");
+  if(cartAddMenuButton){
+    const wrap=cartAddMenuButton.closest(".cart-add-another");
+    const willOpen=!wrap.classList.contains("open");
+    document.querySelectorAll(".cart-add-another.open").forEach(element=>{
+      element.classList.remove("open");
+      element.querySelector("[data-cart-add-menu]")?.setAttribute("aria-expanded","false");
+    });
+    if(willOpen){
+      wrap.classList.add("open");
+      cartAddMenuButton.setAttribute("aria-expanded","true");
+    }
+    return;
+  }
+  const cartAddToButton=t.closest("[data-cart-add-to]");
+  if(cartAddToButton){
+    const parts=cartAddToButton.dataset.cartAddTo.split("|");
+    parts.shift();
+    const targetList=Number(parts.pop());
+    const itemId=parts.join("|");
+    const item=allItems().find(product=>product.id===itemId);
+    if(item && LIST_NUMBERS.includes(targetList)){
+      state.itemListSelection[itemId]=targetList;
+      setQty(itemId,qty(itemId,targetList)+1,targetList);
+      toast(`${item.name} added to List ${targetList}`);
+    }
+    return;
+  }
+  if(!t.closest(".cart-add-another")){
+    document.querySelectorAll(".cart-add-another.open").forEach(element=>{
+      element.classList.remove("open");
+      element.querySelector("[data-cart-add-menu]")?.setAttribute("aria-expanded","false");
+    });
+  }
+  if(t.dataset.plus) setQty(t.dataset.plus,qty(t.dataset.plus)+1);
+  if(t.dataset.minus) setQty(t.dataset.minus,qty(t.dataset.minus)-1);
+  if(t.dataset.check){
+    const [listText,...idParts]=t.dataset.check.split("|");
+    const listNo=Number(listText);
+    const itemId=idParts.join("|");
+    const key=checkedKey(listNo,itemId);
+    state.checked[key]=!isChecked(listNo,itemId);
+    if(listNo===1) delete state.checked[itemId];
+    saveLocal();
+    renderCart();
+  }
+  if(t.dataset.addSuggestion){
+    const itemId=t.dataset.addSuggestion;
+    setSelectedList(itemId,1);
+    setQty(itemId,qty(itemId,1)+1,1);
+  }
+  if(t.dataset.cartPlus){
+    const [listText,...idParts]=t.dataset.cartPlus.split("|");
+    const listNo=Number(listText);
+    const itemId=idParts.join("|");
+    setQty(itemId,qty(itemId,listNo)+1,listNo);
+  }
+  if(t.dataset.cartMinus){
+    const [listText,...idParts]=t.dataset.cartMinus.split("|");
+    const listNo=Number(listText);
+    const itemId=idParts.join("|");
+    setQty(itemId,qty(itemId,listNo)-1,listNo);
+  }
+  if(t.dataset.cartRemove){
+    const [listText,...idParts]=t.dataset.cartRemove.split("|");
+    const listNo=Number(listText);
+    const itemId=idParts.join("|");
+    setQty(itemId,0,listNo);
+  }
+  if(t.dataset.cartMove){
+    const parts=t.dataset.cartMove.split("|");
+    const sourceList=Number(parts.shift());
+    const targetList=Number(parts.pop());
+    const itemId=parts.join("|");
+    if(sourceList!==targetList && LIST_NUMBERS.includes(targetList)){
+      const movingQty=qty(itemId,sourceList);
+      const combinedQty=qty(itemId,targetList)+movingQty;
+      delete cartFor(sourceList)[itemId];
+      cartFor(targetList)[itemId]=combinedQty;
+      state.itemListSelection[itemId]=targetList;
+      delete state.checked[checkedKey(sourceList,itemId)];
+      saveLocal();
+      render();
+      queueSync("setCart",{itemId,quantity:0,listNumber:sourceList});
+      queueSync("setCart",{itemId,quantity:combinedQty,listNumber:targetList});
+    }
+  }
+  if(t.dataset.listSelect){
+    const [itemId,listNo]=t.dataset.listSelect.split("|");
+    setSelectedList(itemId,Number(listNo));
+  }
+  if(t.dataset.detail) showItemDetail(t.dataset.detail);
+  if(t.dataset.drawerPlus) setQty(t.dataset.drawerPlus,qty(t.dataset.drawerPlus)+1);
+  if(t.dataset.drawerMinus) setQty(t.dataset.drawerMinus,qty(t.dataset.drawerMinus)-1);
+  if(t.dataset.closeDrawer) closeItemDetail();
+
+  if(t.dataset.addCustom){
+    document.getElementById("custom-"+t.dataset.addCustom).classList.toggle("hidden");
+  }
+  if(t.dataset.customSave){
+    const catId=t.dataset.customSave;
+    const input=document.querySelector(`[data-custom-input="${catId}"]`);
+    const name=input.value.trim();
+    if(!name) return;
+    const cat=state.categories.find(c=>c.id===catId);
+    const id="custom-"+Date.now();
+    cat.items.push({id,name,unit:"pc",defaultInterval:14});
+    setQty(id,1);
+    input.value="";
+  }
+  if(t.dataset.archive) archiveProduct(t.dataset.archive);
+  if(t.dataset.restore) restoreProduct(t.dataset.restore);
+  if(t.dataset.close) document.getElementById(t.dataset.close).classList.remove("open");
+});
+
+document.getElementById("cartItems").addEventListener("input",e=>{
+  if(e.target.dataset.listName){
+    const listNo=Number(e.target.dataset.listName);
+    if(LIST_NUMBERS.includes(listNo)){
+      state.listNames[listNo]=e.target.value;
+      saveLocal();
+    }
+    return;
+  }
+  if(e.target.dataset.price){
+    const itemId=e.target.dataset.price;
+    state.cartPrices[itemId]=e.target.value;
+    document.querySelectorAll("[data-price]").forEach(input=>{
+      if(input!==e.target && input.dataset.price===itemId) input.value=e.target.value;
+    });
+    saveLocal();
+    updateCartTotal();
+  }
+});
+document.getElementById("cartItems").addEventListener("focusout",e=>{
+  if(!e.target.dataset.listName) return;
+  const listNo=Number(e.target.dataset.listName);
+  if(!LIST_NUMBERS.includes(listNo)) return;
+  const normalized=String(e.target.value||"").trim()||defaultListName(listNo);
+  state.listNames[listNo]=normalized;
+  e.target.value=normalized;
+  saveLocal();
+});
+document.getElementById("cartItems").addEventListener("keydown",e=>{
+  if(e.target.dataset.listName && e.key==="Enter"){
+    e.preventDefault();
+    e.target.blur();
+  }
+});
+document.getElementById("searchInput").addEventListener("input",e=>{state.query=e.target.value;renderCategories()});
+document.getElementById("refreshSheetBtn").onclick=loadFromSheet;
+document.getElementById("archiveBtn").onclick=()=>{
+  renderArchive();
+  document.getElementById("archiveModal").classList.add("open");
+};
+document.getElementById("restoreAllBtn").onclick=restoreAllProducts;
+document.getElementById("cartButton").onclick=openCheckout;
+document.getElementById("checkoutClose").onclick=closeCheckout;
+document.getElementById("checkoutModal").addEventListener("click",e=>{
+  if(e.target.id==="checkoutModal") closeCheckout();
+});
+document.getElementById("repeatBtn").onclick=repeatLastOrder;
+document.getElementById("copyBtn").onclick=copyList;
+document.getElementById("saveOrderBtn").onclick=saveOrder;
+document.getElementById("clearBtn").onclick=clearCart;
+document.getElementById("runningLowToggle").onclick=()=>{
+  state.runningLowCollapsed=!state.runningLowCollapsed;
+  saveLocal();
+  renderSuggestions();
+};
+
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && activeDetailItemId) closeItemDetail();
+  else if(e.key==="Escape" && state.cartOpen) closeCheckout();
+});
+
+ensureDefaultProductsPresent();
+applyDefaultPricing();
+render();
+loadFromSheet();
+</script>
+</body>
+</html>
