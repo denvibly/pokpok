@@ -446,9 +446,12 @@
       margin-top:12px;
       border:1px solid #D2D2D2;
       border-radius:10px;
-      overflow:hidden;
+      position:relative;
+      z-index:0;
+      overflow:visible;
       background:rgba(255,255,255,.35)
     }
+    .cart-list-group.menu-open{z-index:50}
     .cart-list-group:first-child{margin-top:8px}
     .cart-list-head{
       display:flex;
@@ -457,7 +460,8 @@
       gap:10px;
       padding:9px 11px;
       background:#E2E2E2;
-      border-bottom:1px solid #D0D0D0
+      border-bottom:1px solid #D0D0D0;
+      border-radius:9px 9px 0 0
     }
     .cart-list-name-editor{
       display:flex;
@@ -491,7 +495,7 @@
       border-bottom:1px solid #D4D4D4;
       background:transparent
     }
-    .cart-item:last-child{border-bottom:0}
+    .cart-item:last-child{border-bottom:0;border-radius:0 0 9px 9px}
     .cart-row{display:grid;grid-template-columns:18px 34px minmax(150px,1fr) auto auto 72px 66px 32px;align-items:center;gap:10px}
     .cart-item-controls{display:flex;align-items:center;gap:5px}
     .cart-item-controls button{
@@ -552,7 +556,7 @@
       position:absolute;
       top:calc(100% + 6px);
       left:0;
-      z-index:12;
+      z-index:1000;
       display:none;
       min-width:148px;
       padding:7px;
@@ -562,6 +566,10 @@
       box-shadow:0 8px 22px rgba(28,35,51,.18)
     }
     .cart-add-another.open .cart-add-another-menu{display:block}
+    .cart-add-another.open-up .cart-add-another-menu{
+      top:auto;
+      bottom:calc(100% + 6px)
+    }
     .cart-add-another-label{
       padding:2px 4px 6px;
       color:var(--muted);
@@ -2523,10 +2531,16 @@ document.addEventListener("click",e=>{
     const willOpen=!wrap.classList.contains("open");
     document.querySelectorAll(".cart-add-another.open").forEach(element=>{
       element.classList.remove("open");
+      element.classList.remove("open-up");
+      element.closest(".cart-list-group")?.classList.remove("menu-open");
       element.querySelector("[data-cart-add-menu]")?.setAttribute("aria-expanded","false");
     });
     if(willOpen){
+      const sheetRect=cartAddMenuButton.closest(".cart-sheet")?.getBoundingClientRect();
+      const buttonRect=cartAddMenuButton.getBoundingClientRect();
+      wrap.classList.toggle("open-up",Boolean(sheetRect && sheetRect.bottom-buttonRect.bottom<110));
       wrap.classList.add("open");
+      wrap.closest(".cart-list-group")?.classList.add("menu-open");
       cartAddMenuButton.setAttribute("aria-expanded","true");
     }
     return;
@@ -2548,6 +2562,8 @@ document.addEventListener("click",e=>{
   if(!t.closest(".cart-add-another")){
     document.querySelectorAll(".cart-add-another.open").forEach(element=>{
       element.classList.remove("open");
+      element.classList.remove("open-up");
+      element.closest(".cart-list-group")?.classList.remove("menu-open");
       element.querySelector("[data-cart-add-menu]")?.setAttribute("aria-expanded","false");
     });
   }
