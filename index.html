@@ -25,11 +25,17 @@
     }
     button,input,select{font:inherit}
     button{cursor:pointer}
-    .app{min-height:100vh}
+    .app{
+      width:795px;
+      max-width:100%;
+      min-height:100vh;
+      margin:0 auto;
+      background:var(--bg)
+    }
     .topbar{
       position:sticky;top:0;z-index:20;
       background:var(--ink);
-      padding:18px 14px 14px;
+      padding:18px 15px 14px;
       box-shadow:0 2px 12px rgba(0,0,0,.12);
     }
     .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -175,7 +181,7 @@
       font-size:12px;
       font-weight:800
     }
-    .content{padding:14px 12px}
+    .content{padding:14px 15px}
     .panel{
       background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;
       margin-bottom:12px
