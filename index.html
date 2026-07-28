@@ -39,9 +39,32 @@
       box-shadow:0 2px 12px rgba(0,0,0,.12);
     }
     .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .title-tools{display:flex;align-items:center;gap:8px}
     .title{
       color:#fff;font-family:Arial Narrow,Arial,sans-serif;
       text-transform:uppercase;font-size:24px;font-weight:900;letter-spacing:.5px
+    }
+    .language-switch{
+      display:flex;
+      align-items:center;
+      padding:3px;
+      border-radius:8px;
+      background:#2A3247
+    }
+    .language-switch button{
+      min-width:34px;
+      height:34px;
+      padding:0 8px;
+      border:0;
+      border-radius:6px;
+      background:transparent;
+      color:#AAB1C1;
+      font-size:11px;
+      font-weight:900
+    }
+    .language-switch button.active{
+      background:#fff;
+      color:var(--ink)
     }
     .cart-summary-btn{
       border:0;
@@ -387,7 +410,13 @@
       border:0;background:var(--ink);color:#fff;border-radius:6px;
       padding:7px 14px;font-size:12.5px;font-weight:700
     }
+    .qty .add{width:auto;min-width:58px}
+    html[lang="ru"] .qty .add{min-width:82px}
     .remove{border:0;background:none;color:#C7C2B4;font-size:18px}
+    @media(max-width:480px){
+      .item{flex-direction:column}
+      .qty{width:100%;max-width:none;justify-content:flex-end}
+    }
     .custom-row{display:flex;gap:6px;margin-bottom:8px}
     .custom-row input{
       flex:1;border:1px solid var(--line);border-radius:6px;padding:8px 10px;outline:0
@@ -845,11 +874,17 @@
   <header class="topbar">
     <div class="title-row">
       <div class="title">POKPOK</div>
-      <button id="cartButton" class="cart-summary-btn" type="button" title="Open cart" aria-label="Open cart" disabled>
-        <span class="cart-summary-icon" aria-hidden="true">🛒</span>
-        <span id="cartCount" class="cart-summary-count">0</span>
-        <span id="headerCartTotal" class="cart-summary-total">$0.00</span>
-      </button>
+      <div class="title-tools">
+        <div id="languageSwitch" class="language-switch" role="group" aria-label="Language">
+          <button type="button" data-language="en" aria-pressed="true">EN</button>
+          <button type="button" data-language="ru" aria-pressed="false">RU</button>
+        </div>
+        <button id="cartButton" class="cart-summary-btn" type="button" title="Open cart" aria-label="Open cart" disabled>
+          <span class="cart-summary-icon" aria-hidden="true">🛒</span>
+          <span id="cartCount" class="cart-summary-count">0</span>
+          <span id="headerCartTotal" class="cart-summary-total">$0.00</span>
+        </button>
+      </div>
     </div>
     <div class="top-actions">
       <div class="search">
@@ -877,7 +912,7 @@
         </svg>
       </button>
       <button id="archiveBtn" class="icon-btn dark-btn archive-top-btn" title="Open archived products">
-        <span>Archive</span><span id="archiveCount" class="archive-count">0</span>
+        <span id="archiveBtnLabel">Archive</span><span id="archiveCount" class="archive-count">0</span>
       </button>
       <a
         id="chatgptReceiptLink"
@@ -903,7 +938,7 @@
         aria-expanded="true"
         aria-controls="runningLowContent"
       >
-        <span class="running-low-toggle-title">Running Low</span>
+        <span id="runningLowTitle" class="running-low-toggle-title">Running Low</span>
         <span class="running-low-toggle-meta">
           <span id="runningLowCount">0 items</span>
           <span class="running-low-toggle-arrow">▼</span>
@@ -929,13 +964,13 @@
     </div>
     <div id="cartSheet" class="cart-sheet">
     <div id="cartItems"></div>
-    <div class="cart-total-row"><span>Estimated Total</span><strong id="cartTotal">$0.00</strong></div>
-    <div class="small" style="margin-top:8px">The estimate uses your latest receipt price, a Google Sheet price when available, or a Costco online estimate. Enter the actual paid price to update the total and save it to price history.</div>
+    <div class="cart-total-row"><span id="estimatedTotalLabel">Estimated Total</span><strong id="cartTotal">$0.00</strong></div>
+    <div id="cartEstimateNote" class="small" style="margin-top:8px">The estimate uses your latest receipt price, a Google Sheet price when available, or a Costco online estimate. Enter the actual paid price to update the total and save it to price history.</div>
     <div class="cart-actions">
       <button id="copyBtn" class="outline">Copy List</button>
       <button id="savePdfBtn" class="pdf-save">Save PDF</button>
       <button id="saveOrderBtn" class="save">Save Order</button>
-      <button id="clearBtn" class="trash">🗑</button>
+      <button id="clearBtn" class="trash" aria-label="Clear cart">🗑</button>
     </div>
     <section id="checkoutRecommendations" class="checkout-recommendations" aria-labelledby="checkoutRecommendationsTitle"></section>
     </div>
@@ -955,8 +990,8 @@
 <div id="archiveModal" class="modal">
   <div class="modal-card">
     <div class="modal-head">
-      <strong>Archive</strong>
-      <button class="close" data-close="archiveModal">×</button>
+      <strong id="archiveModalTitle">Archive</strong>
+      <button class="close" data-close="archiveModal" aria-label="Close Archive">×</button>
     </div>
     <div class="restore-all-row">
       <button id="restoreAllBtn" class="restore-all-btn" type="button">Restore hidden products</button>
@@ -1134,6 +1169,7 @@ const LS = {
   archived:"shopping:archivedProducts:v1",
   sheetArchiveItems:"shopping:sheetArchiveItems:v1",
   settings:"shopping:settings:v1",
+  language:"pokpok:language:v1",
 };
 
 let state = {
@@ -1153,6 +1189,7 @@ let state = {
   query:"",
   categoryFilter:"all",
   cartOpen:false,
+  language:loadLocal(LS.language,"en")==="ru"?"ru":"en",
   settings: {
     spreadsheetUrl:CONFIG.GOOGLE_SHEET_URL,
     spreadsheetTab:CONFIG.GOOGLE_SHEET_TAB,
@@ -1170,6 +1207,359 @@ if(!state.settings.spreadsheetTab || state.settings.spreadsheetTab==="Sheet1"){
 }
 
 let activeDetailItemId=null;
+
+function ruPlural(count,one,few,many){
+  const value=Math.abs(Number(count))%100;
+  const last=value%10;
+  if(value>10 && value<20) return many;
+  if(last===1) return one;
+  if(last>=2 && last<=4) return few;
+  return many;
+}
+const I18N={
+  en:{
+    language:"Language",
+    openCart:"Open cart",
+    searchProducts:"Search products...",
+    refreshProducts:"Refresh products from Google Sheet",
+    filterProducts:"Filter products by category",
+    categorySelected:({name})=>`Category: ${name}`,
+    openArchive:"Open archived products",
+    openReceiptChat:"Open ChatGPT receipt analysis chat",
+    runningLow:"Running Low",
+    yourCart:"Your Cart",
+    closeCart:"Close cart",
+    estimatedTotal:"Estimated Total",
+    estimateNote:"The estimate uses your latest receipt price, a Google Sheet price when available, or a Costco online estimate. Enter the actual paid price to update the total and save it to price history.",
+    copyList:"Copy List",
+    savePdf:"Save PDF",
+    saveOrder:"Save Order",
+    clearCart:"Clear cart",
+    filterByCategory:"Filter by category",
+    closeCategoryFilter:"Close category filter",
+    archive:"Archive",
+    closeArchive:"Close Archive",
+    restoreHidden:"Restore hidden products",
+    productDetails:"Product Details",
+    closeProductDetails:"Close product details",
+    allCategories:"All categories",
+    uncategorized:"Uncategorized",
+    itemCount:({count})=>`${count} item${Number(count)===1?"":"s"}`,
+    listCount:({count})=>`${count} list${Number(count)===1?"":"s"}`,
+    cartSummary:({items,lists})=>`${items} item${Number(items)===1?"":"s"} · ${lists} list${Number(lists)===1?"":"s"}`,
+    emptyCart:"Your cart is empty",
+    noArchive:"No products in Archive.",
+    chooseList:"Choose shopping list",
+    chooseListNumber:({number})=>`Choose List ${number}`,
+    addToListNumber:({number})=>`Add to List ${number}`,
+    decreaseList:({number})=>`Decrease quantity in List ${number}`,
+    increaseList:({number})=>`Increase quantity in List ${number}`,
+    add:"Add",
+    restore:"Restore",
+    productFallback:"Product",
+    movedToArchive:({name})=>`${name} moved to Archive`,
+    productRestored:({name})=>`${name} restored`,
+    productsRestored:({count})=>`${count} product${Number(count)===1?"":"s"} restored`,
+    archiveEmpty:"Archive is already empty",
+    listNumber:({number})=>`List ${number}`,
+    listBadge:({number,quantity})=>`List ${number}: ${quantity}`,
+    sheetPrice:"sheet price",
+    lastPaid:"last paid",
+    onlineEstimate:"online estimate",
+    youMayAlsoNeed:"You may also need",
+    recommendationsSubtitle:"Based on how often you usually buy these products",
+    boughtReason:({elapsed,interval})=>`Bought ${elapsed} day${Number(elapsed)===1?"":"s"} ago · usually every ${interval} days`,
+    priceUnavailable:"Price unavailable",
+    nothingDue:"Nothing else looks due right now.",
+    noRunningLow:"No items are clearly due for repurchase yet.",
+    lastPurchasedReason:({elapsed,interval})=>`last purchased ${elapsed} day${Number(elapsed)===1?"":"s"} ago, usually every ${interval} days`,
+    unit:"Unit",
+    moveToArchive:"Move to Archive",
+    archiveProduct:({name})=>`Archive ${name}`,
+    renameList:"Rename this list",
+    listNameLabel:({number})=>`Name for List ${number}`,
+    subtotal:"Subtotal",
+    anotherList:"+ Another List",
+    addOneTo:"Add one to",
+    addOneToList:({name,number})=>`Add one ${name} to List ${number}`,
+    moveAnotherList:"Move product to another list",
+    moveToList:({number})=>`Move to List ${number}`,
+    moveProductToList:({name,number})=>`Move ${name} to List ${number}`,
+    decreaseQuantity:"Decrease quantity",
+    increaseQuantity:"Increase quantity",
+    pricePlaceholder:"price $",
+    unitPriceFor:({name})=>`Unit price for ${name}`,
+    removeFromCart:"Remove from cart",
+    removeProductFromCart:({name})=>`Remove ${name} from cart`,
+    productsRowsLoaded:({products,archive})=>`${products} product row${Number(products)===1?"":"s"} loaded · ${archive} archive row${Number(archive)===1?"":"s"} loaded`,
+    productsArchiveRefreshed:"Products and Archive refreshed",
+    productsRefreshedSavedArchive:"Products refreshed · using saved Archive",
+    usingSavedProducts:"Using saved product data",
+    sheetLoadError:"Could not read the Google Sheet. Confirm the tab is named Items and set Share → General access → Anyone with the link → Viewer.",
+    orderSaved:"Order and all three lists saved",
+    listSubtotal:({name,total})=>`${name} subtotal: $${total}`,
+    allListsCopied:"All lists copied",
+    copyFailed:"Unable to copy",
+    preparing:"Preparing...",
+    pdfSaved:"PDF saved",
+    pdfFailed:"Could not create PDF",
+    addedToList:({name,number})=>`${name} added to List ${number}`,
+    currentPrice:"Current",
+    latestReceiptPrice:"Latest receipt price",
+    googleSheetPrice:"Google Sheet price",
+    onlinePriceEstimate:"Online estimate",
+    priceNotAvailable:"Price not available",
+    noOfficialLink:"Official product link has not been added yet.",
+    viewOfficialPage:"View Official Product Page",
+    viewOnCostco:"View Product on Costco",
+    productInformation:"Product Information",
+    itemNumber:"Item number",
+    category:"Category",
+    weightSize:"Weight / size",
+    cartQuantity:"Cart quantity",
+    lastPurchase:"Last purchase",
+    buyInterval:"Buy interval",
+    everyDays:({count})=>`About every ${count} days`,
+    receiptName:"Receipt Name",
+    noReceiptName:"No receipt name recorded.",
+    description:"Description",
+    noDescription:"No description added yet.",
+    priceSummary:"Price Summary",
+    lastPaidLabel:"Last paid",
+    average:"Average",
+    lowest:"Lowest",
+    highest:"Highest",
+    records:"Records",
+    priceHistory:"Price History",
+    noPriceHistory:"No purchase price history yet.",
+    shoppingList:({number})=>`Shopping List ${number}`,
+    notAdded:"Not added",
+    pdfCartTitle:"SHOPPING CART",
+    pdfProduct:"Product",
+    pdfItemNumber:"Item #",
+    pdfQuantity:"Qty",
+    pdfPrice:"Price",
+    pdfTotal:"Total",
+    pdfEstimatedTotal:"ESTIMATED TOTAL",
+    pdfNote:"Prices are estimates based on the values currently shown in the POKPOK cart.",
+    pdfSubject:"Shopping cart",
+    pdfPage:({current,total})=>`POKPOK | Page ${current} of ${total}`
+  },
+  ru:{
+    language:"Язык",
+    openCart:"Открыть корзину",
+    searchProducts:"Поиск товаров...",
+    refreshProducts:"Обновить товары из Google Таблицы",
+    filterProducts:"Фильтр товаров по категориям",
+    categorySelected:({name})=>`Категория: ${name}`,
+    openArchive:"Открыть архив товаров",
+    openReceiptChat:"Открыть ChatGPT для анализа нового чека",
+    runningLow:"Пора купить",
+    yourCart:"Ваша корзина",
+    closeCart:"Закрыть корзину",
+    estimatedTotal:"Примерная сумма",
+    estimateNote:"Расчёт использует последнюю цену из чека, цену из Google Таблицы или примерную цену Costco. Введите фактическую цену покупки, чтобы обновить сумму и сохранить её в истории цен.",
+    copyList:"Копировать",
+    savePdf:"Сохранить PDF",
+    saveOrder:"Сохранить заказ",
+    clearCart:"Очистить корзину",
+    filterByCategory:"Фильтр по категориям",
+    closeCategoryFilter:"Закрыть фильтр категорий",
+    archive:"Архив",
+    closeArchive:"Закрыть архив",
+    restoreHidden:"Вернуть скрытые товары",
+    productDetails:"О товаре",
+    closeProductDetails:"Закрыть информацию о товаре",
+    allCategories:"Все категории",
+    uncategorized:"Без категории",
+    itemCount:({count})=>`${count} ${ruPlural(count,"товар","товара","товаров")}`,
+    listCount:({count})=>`${count} ${ruPlural(count,"список","списка","списков")}`,
+    cartSummary:({items,lists})=>`${items} ${ruPlural(items,"товар","товара","товаров")} · ${lists} ${ruPlural(lists,"список","списка","списков")}`,
+    emptyCart:"Корзина пуста",
+    noArchive:"В архиве нет товаров.",
+    chooseList:"Выбрать список покупок",
+    chooseListNumber:({number})=>`Выбрать список ${number}`,
+    addToListNumber:({number})=>`Добавить в список ${number}`,
+    decreaseList:({number})=>`Уменьшить количество в списке ${number}`,
+    increaseList:({number})=>`Увеличить количество в списке ${number}`,
+    add:"Добавить",
+    restore:"Вернуть",
+    productFallback:"Товар",
+    movedToArchive:({name})=>`${name}: перемещено в архив`,
+    productRestored:({name})=>`${name}: возвращено`,
+    productsRestored:({count})=>`Возвращено ${count} ${ruPlural(count,"товар","товара","товаров")}`,
+    archiveEmpty:"Архив уже пуст",
+    listNumber:({number})=>`Список ${number}`,
+    listBadge:({number,quantity})=>`Список ${number}: ${quantity}`,
+    sheetPrice:"цена из таблицы",
+    lastPaid:"последняя цена",
+    onlineEstimate:"цена онлайн",
+    youMayAlsoNeed:"Возможно, вам ещё нужно",
+    recommendationsSubtitle:"На основе того, как часто вы обычно покупаете эти товары",
+    boughtReason:({elapsed,interval})=>`Покупали ${elapsed} ${ruPlural(elapsed,"день","дня","дней")} назад · обычно каждые ${interval} ${ruPlural(interval,"день","дня","дней")}`,
+    priceUnavailable:"Цена неизвестна",
+    nothingDue:"Сейчас больше ничего не пора покупать.",
+    noRunningLow:"Пока нет товаров, которые точно пора покупать снова.",
+    lastPurchasedReason:({elapsed,interval})=>`последняя покупка ${elapsed} ${ruPlural(elapsed,"день","дня","дней")} назад, обычно каждые ${interval} ${ruPlural(interval,"день","дня","дней")}`,
+    unit:"Единица",
+    moveToArchive:"Переместить в архив",
+    archiveProduct:({name})=>`Переместить ${name} в архив`,
+    renameList:"Переименовать список",
+    listNameLabel:({number})=>`Название списка ${number}`,
+    subtotal:"Сумма",
+    anotherList:"+ В другой список",
+    addOneTo:"Добавить один товар в",
+    addOneToList:({name,number})=>`Добавить ${name} в список ${number}`,
+    moveAnotherList:"Переместить товар в другой список",
+    moveToList:({number})=>`Переместить в список ${number}`,
+    moveProductToList:({name,number})=>`Переместить ${name} в список ${number}`,
+    decreaseQuantity:"Уменьшить количество",
+    increaseQuantity:"Увеличить количество",
+    pricePlaceholder:"цена $",
+    unitPriceFor:({name})=>`Цена за единицу: ${name}`,
+    removeFromCart:"Удалить из корзины",
+    removeProductFromCart:({name})=>`Удалить ${name} из корзины`,
+    productsRowsLoaded:({products,archive})=>`Загружено: ${products} ${ruPlural(products,"товар","товара","товаров")} · архив: ${archive}`,
+    productsArchiveRefreshed:"Товары и архив обновлены",
+    productsRefreshedSavedArchive:"Товары обновлены · используется сохранённый архив",
+    usingSavedProducts:"Используются сохранённые товары",
+    sheetLoadError:"Не удалось прочитать Google Таблицу. Проверьте, что вкладка называется Items и доступ настроен: Поделиться → Общий доступ → Все, у кого есть ссылка → Читатель.",
+    orderSaved:"Заказ и все три списка сохранены",
+    listSubtotal:({name,total})=>`${name}, сумма: $${total}`,
+    allListsCopied:"Все списки скопированы",
+    copyFailed:"Не удалось скопировать",
+    preparing:"Подготовка...",
+    pdfSaved:"PDF сохранён",
+    pdfFailed:"Не удалось создать PDF",
+    addedToList:({name,number})=>`${name}: добавлено в список ${number}`,
+    currentPrice:"Текущая",
+    latestReceiptPrice:"Последняя цена из чека",
+    googleSheetPrice:"Цена из Google Таблицы",
+    onlinePriceEstimate:"Примерная цена онлайн",
+    priceNotAvailable:"Цена неизвестна",
+    noOfficialLink:"Официальная ссылка на товар пока не добавлена.",
+    viewOfficialPage:"Открыть официальную страницу товара",
+    viewOnCostco:"Открыть товар на Costco",
+    productInformation:"Информация о товаре",
+    itemNumber:"Номер товара",
+    category:"Категория",
+    weightSize:"Вес / размер",
+    cartQuantity:"Количество в корзине",
+    lastPurchase:"Последняя покупка",
+    buyInterval:"Как часто покупаете",
+    everyDays:({count})=>`Примерно каждые ${count} ${ruPlural(count,"день","дня","дней")}`,
+    receiptName:"Название в чеке",
+    noReceiptName:"Название из чека не сохранено.",
+    description:"Описание",
+    noDescription:"Описание пока не добавлено.",
+    priceSummary:"Сводка цен",
+    lastPaidLabel:"Последняя покупка",
+    average:"Средняя",
+    lowest:"Минимальная",
+    highest:"Максимальная",
+    records:"Записей",
+    priceHistory:"История цен",
+    noPriceHistory:"Истории цен пока нет.",
+    shoppingList:({number})=>`Список покупок ${number}`,
+    notAdded:"Не добавлено",
+    pdfCartTitle:"КОРЗИНА",
+    pdfProduct:"Товар",
+    pdfItemNumber:"Номер",
+    pdfQuantity:"Кол-во",
+    pdfPrice:"Цена",
+    pdfTotal:"Сумма",
+    pdfEstimatedTotal:"ПРИМЕРНАЯ СУММА",
+    pdfNote:"Цены рассчитаны по значениям, которые сейчас указаны в корзине POKPOK.",
+    pdfSubject:"Корзина покупок",
+    pdfPage:({current,total})=>`POKPOK | Страница ${current} из ${total}`
+  }
+};
+function t(key,vars={}){
+  const entry=I18N[state.language]?.[key]??I18N.en[key]??key;
+  if(typeof entry==="function") return entry(vars);
+  return String(entry).replace(/\{(\w+)\}/g,(_,name)=>vars[name]??"");
+}
+function itemDisplayName(item){
+  return state.language==="ru" && String(item?.rusName||"").trim()
+    ? String(item.rusName).trim()
+    : String(item?.name||t("productFallback"));
+}
+const RUSSIAN_CATEGORIES={
+  "dairy & eggs":"Молочные продукты и яйца",
+  "meat, poultry & seafood":"Мясо, птица и морепродукты",
+  "meat & seafood":"Мясо и морепродукты",
+  "produce":"Овощи и фрукты",
+  "fruit & vegetables":"Овощи и фрукты",
+  "fruits & vegetables":"Овощи и фрукты",
+  "bakery":"Выпечка",
+  "bakery & pantry":"Выпечка и бакалея",
+  "pantry":"Бакалея",
+  "snacks, dips & deli":"Закуски, соусы и деликатесы",
+  "snacks":"Закуски",
+  "drinks":"Напитки",
+  "beverages":"Напитки",
+  "frozen":"Замороженные продукты",
+  "household":"Для дома",
+  "household & other receipt items":"Для дома и другое",
+  "archive":"Архив",
+  "uncategorized":"Без категории"
+};
+function categoryDisplayName(name){
+  const value=String(name||t("uncategorized"));
+  return state.language==="ru"?RUSSIAN_CATEGORIES[value.trim().toLowerCase()]||value:value;
+}
+function applyLanguage(){
+  document.documentElement.lang=state.language;
+  document.getElementById("languageSwitch")?.setAttribute("aria-label",t("language"));
+  document.querySelectorAll("[data-language]").forEach(button=>{
+    const active=button.dataset.language===state.language;
+    button.classList.toggle("active",active);
+    button.setAttribute("aria-pressed",String(active));
+  });
+  const cartButton=document.getElementById("cartButton");
+  cartButton.title=t("openCart");
+  cartButton.setAttribute("aria-label",t("openCart"));
+  document.getElementById("searchInput").placeholder=t("searchProducts");
+  const refresh=document.getElementById("refreshSheetBtn");
+  refresh.title=t("refreshProducts");
+  refresh.setAttribute("aria-label",t("refreshProducts"));
+  const filter=document.getElementById("categoryFilterBtn");
+  filter.title=t("filterProducts");
+  filter.setAttribute("aria-label",t("filterProducts"));
+  const archive=document.getElementById("archiveBtn");
+  archive.title=t("openArchive");
+  archive.setAttribute("aria-label",t("openArchive"));
+  document.getElementById("archiveBtnLabel").textContent=t("archive");
+  const chat=document.getElementById("chatgptReceiptLink");
+  chat.title=t("openReceiptChat");
+  chat.setAttribute("aria-label",t("openReceiptChat"));
+  document.getElementById("runningLowTitle").textContent=t("runningLow");
+  document.getElementById("checkoutTitle").textContent=t("yourCart");
+  document.getElementById("checkoutClose").setAttribute("aria-label",t("closeCart"));
+  document.getElementById("estimatedTotalLabel").textContent=t("estimatedTotal");
+  document.getElementById("cartEstimateNote").textContent=t("estimateNote");
+  document.getElementById("copyBtn").textContent=t("copyList");
+  document.getElementById("savePdfBtn").textContent=t("savePdf");
+  document.getElementById("saveOrderBtn").textContent=t("saveOrder");
+  document.getElementById("clearBtn").setAttribute("aria-label",t("clearCart"));
+  document.getElementById("categoryFilterTitle").textContent=t("filterByCategory");
+  document.querySelector('[data-close="categoryFilterModal"]')?.setAttribute("aria-label",t("closeCategoryFilter"));
+  document.getElementById("archiveModalTitle").textContent=t("archive");
+  document.querySelector('[data-close="archiveModal"]')?.setAttribute("aria-label",t("closeArchive"));
+  document.getElementById("restoreAllBtn").textContent=t("restoreHidden");
+  document.getElementById("productDrawerTitle").textContent=t("productDetails");
+  document.getElementById("productDrawerClose").setAttribute("aria-label",t("closeProductDetails"));
+}
+function setLanguage(language){
+  const next=language==="ru"?"ru":"en";
+  if(state.language===next){
+    applyLanguage();
+    return;
+  }
+  state.language=next;
+  saveLocal();
+  render();
+}
 
 function loadLocal(key, fallback){
   try{
@@ -1192,6 +1582,7 @@ function saveLocal(){
   localStorage.setItem(LS.history,JSON.stringify(state.priceHistory));
   localStorage.setItem(LS.orders,JSON.stringify(state.orders));
   localStorage.setItem(LS.settings,JSON.stringify(state.settings));
+  localStorage.setItem(LS.language,JSON.stringify(state.language));
 }
 function toast(msg){
   const el=document.getElementById("toast");
@@ -1253,7 +1644,7 @@ function archivedProducts(){
       products.push({...item,archiveKind:"manual"});
     });
 
-  return products.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")));
+  return products.sort((a,b)=>itemDisplayName(a).localeCompare(itemDisplayName(b),state.language));
 }
 function archiveProduct(itemId){
   const item=mainItems().find(product=>product.id===itemId);
@@ -1275,21 +1666,21 @@ function archiveProduct(itemId){
   if(activeDetailItemId===itemId) closeItemDetail();
   saveLocal();
   render();
-  toast(`${item.name} moved to Archive`);
+  toast(t("movedToArchive",{name:itemDisplayName(item)}));
 }
 function restoreProduct(itemId){
   const item=allItems().find(product=>product.id===itemId);
   delete state.archived[itemId];
   saveLocal();
   render();
-  toast(`${item?.name||"Product"} restored`);
+  toast(t("productRestored",{name:itemDisplayName(item)}));
 }
 function restoreAllProducts(){
   const count=Object.keys(state.archived||{}).length;
   state.archived={};
   saveLocal();
   render();
-  toast(count?`${count} products restored`:"Archive is already empty");
+  toast(count?t("productsRestored",{count}):t("archiveEmpty"));
 }
 function renderArchive(){
   const items=archivedProducts();
@@ -1306,7 +1697,7 @@ function renderArchive(){
   }
 
   if(!items.length){
-    root.innerHTML=`<div class="archive-empty">No products in Archive.</div>`;
+    root.innerHTML=`<div class="archive-empty">${escapeHtml(t("noArchive"))}</div>`;
     return;
   }
 
@@ -1318,35 +1709,35 @@ function renderArchive(){
       <div class="archive-item">
         ${imageHtml(item,true)}
         <div class="archive-item-copy">
-          <button type="button" class="archive-item-name item-name-button" data-detail="${item.id}">${escapeHtml(item.name)}</button>
+          <button type="button" class="archive-item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
           <div class="archive-item-meta">
-            ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(item.categoryName||"Uncategorized")}
+            ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(categoryDisplayName(item.categoryName))}
           </div>
           ${item.weight?`<div class="archive-item-meta">${escapeHtml(item.weight)}</div>`:""}
           ${price>0?`<div class="archive-item-price">$${price.toFixed(2)}</div>`:""}
           ${listSummaryHtml(item.id)}
         </div>
         <div class="archive-item-actions">
-          <div class="list-pick" aria-label="Choose shopping list">
+          <div class="list-pick" aria-label="${escapeHtml(t("chooseList"))}">
             ${LIST_NUMBERS.map(listNo=>`
               <button
                 type="button"
                 class="${activeList===listNo?"selected":""}"
                 data-list-select="${item.id}|${listNo}"
-                title="Add to List ${listNo}"
-                aria-label="Choose List ${listNo}"
+                title="${escapeHtml(t("addToListNumber",{number:listNo}))}"
+                aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
               >${listNo}</button>
             `).join("")}
           </div>
           ${activeListQty?`
-            <button class="minus" data-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+            <button class="minus" data-minus="${item.id}" aria-label="${escapeHtml(t("decreaseList",{number:activeList}))}">−</button>
             <strong>${activeListQty}</strong>
-            <button class="plus" data-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+            <button class="plus" data-plus="${item.id}" aria-label="${escapeHtml(t("increaseList",{number:activeList}))}">+</button>
           `:`
-            <button class="add" data-plus="${item.id}">Add</button>
+            <button class="add" data-plus="${item.id}">${escapeHtml(t("add"))}</button>
           `}
           ${item.archiveKind==="manual"
-            ?`<button type="button" class="restore-btn" data-restore="${item.id}">Restore</button>`
+            ?`<button type="button" class="restore-btn" data-restore="${item.id}">${escapeHtml(t("restore"))}</button>`
             :""
           }
         </div>
@@ -1416,10 +1807,13 @@ function itemNumbersHtml(item, className="item-receipt"){
 const LIST_NUMBERS=[1,2,3];
 
 function defaultListName(listNo){
-  return `List ${Number(listNo)}`;
+  return t("listNumber",{number:Number(listNo)});
 }
 function listName(listNo){
   const customName=String(state.listNames?.[listNo]??"").trim();
+  if(customName===`List ${Number(listNo)}` || customName===`Список ${Number(listNo)}`){
+    return defaultListName(listNo);
+  }
   return customName||defaultListName(listNo);
 }
 function cartFor(listNo){
@@ -1458,7 +1852,7 @@ function listSummaryHtml(itemId){
   const badges=LIST_NUMBERS
     .map(listNo=>({listNo,quantity:qty(itemId,listNo)}))
     .filter(row=>row.quantity>0)
-    .map(row=>`<span class="list-mini-badge">List ${row.listNo}: ${row.quantity}</span>`)
+    .map(row=>`<span class="list-mini-badge">${escapeHtml(t("listBadge",{number:row.listNo,quantity:row.quantity}))}</span>`)
     .join("");
   return badges?`<div class="item-list-summary">${badges}</div>`:"";
 }
@@ -1466,7 +1860,7 @@ function listSummaryText(itemId){
   const parts=LIST_NUMBERS
     .map(listNo=>({listNo,quantity:qty(itemId,listNo)}))
     .filter(row=>row.quantity>0)
-    .map(row=>`List ${row.listNo}: ${row.quantity}`);
+    .map(row=>t("listBadge",{number:row.listNo,quantity:row.quantity}));
   return parts.join(" · ");
 }
 function setQty(id,value,listNo=selectedList(id)){
@@ -1501,7 +1895,7 @@ function priceBadge(id){
       const d=+(sheetPrice-previous).toFixed(2);
       if(Math.abs(d)>=.01) delta=` <span class="${d>0?"price-up":"price-down"}">${d>0?"↑":"↓"}$${Math.abs(d).toFixed(2)}</span>`;
     }
-    return `<div class="price-badge">sheet price $${sheetPrice.toFixed(2)}${delta}</div>`;
+    return `<div class="price-badge">${escapeHtml(t("sheetPrice"))} $${sheetPrice.toFixed(2)}${delta}</div>`;
   }
   if(h.length){
     const latest=h[0],prev=h[1];
@@ -1510,11 +1904,11 @@ function priceBadge(id){
       const d=+(latest.price-prev.price).toFixed(2);
       if(Math.abs(d)>=.01) delta=` <span class="${d>0?"price-up":"price-down"}">${d>0?"↑":"↓"}$${Math.abs(d).toFixed(2)}</span>`;
     }
-    return `<div class="price-badge">last paid $${Number(latest.price).toFixed(2)}${delta}</div>`;
+    return `<div class="price-badge">${escapeHtml(t("lastPaid"))} $${Number(latest.price).toFixed(2)}${delta}</div>`;
   }
   const estimate=Number(item?.estimatedPrice);
   if(Number.isFinite(estimate)&&estimate>0){
-    return `<div class="price-badge">online estimate $${estimate.toFixed(2)}</div>`;
+    return `<div class="price-badge">${escapeHtml(t("onlineEstimate"))} $${estimate.toFixed(2)}</div>`;
   }
   return "";
 }
@@ -1571,8 +1965,8 @@ function renderCheckoutRecommendations(){
   root.innerHTML=`
     <div class="checkout-recommendations-head">
       <div>
-        <strong id="checkoutRecommendationsTitle" class="checkout-recommendations-title">You may also need</strong>
-        <div class="checkout-recommendations-subtitle">Based on how often you usually buy these products</div>
+        <strong id="checkoutRecommendationsTitle" class="checkout-recommendations-title">${escapeHtml(t("youMayAlsoNeed"))}</strong>
+        <div class="checkout-recommendations-subtitle">${escapeHtml(t("recommendationsSubtitle"))}</div>
       </div>
     </div>
     ${items.length?`
@@ -1583,23 +1977,23 @@ function renderCheckoutRecommendations(){
             <article class="checkout-recommendation">
               ${imageHtml(item,true)}
               <div class="checkout-recommendation-copy">
-                <div class="checkout-recommendation-name">${escapeHtml(item.name)}</div>
+                <div class="checkout-recommendation-name">${escapeHtml(itemDisplayName(item))}</div>
                 <div class="checkout-recommendation-reason">
-                  Bought ${item.elapsed} day${item.elapsed===1?"":"s"} ago · usually every ${item.interval} days
+                  ${escapeHtml(t("boughtReason",{elapsed:item.elapsed,interval:item.interval}))}
                 </div>
               </div>
               <div class="checkout-recommendation-bottom">
-                <span class="checkout-recommendation-price">${price>0?`$${price.toFixed(2)}`:"Price unavailable"}</span>
+                <span class="checkout-recommendation-price">${price>0?`$${price.toFixed(2)}`:escapeHtml(t("priceUnavailable"))}</span>
                 <button
                   type="button"
                   class="checkout-recommendation-add"
                   data-checkout-recommendation="${item.id}"
-                >Add</button>
+                >${escapeHtml(t("add"))}</button>
               </div>
             </article>`;
         }).join("")}
       </div>
-    `:`<div class="small">Nothing else looks due right now.</div>`}
+    `:`<div class="small">${escapeHtml(t("nothingDue"))}</div>`}
   `;
 }
 
@@ -1612,21 +2006,21 @@ function renderSuggestions(){
 
   if(panel) panel.classList.toggle("collapsed",state.runningLowCollapsed);
   if(toggle) toggle.setAttribute("aria-expanded",String(!state.runningLowCollapsed));
-  if(count) count.textContent=`${arr.length} item${arr.length===1?"":"s"}`;
+  if(count) count.textContent=t("itemCount",{count:arr.length});
   if(!arr.length){
-    root.innerHTML=`<div class="small">No items are clearly due for repurchase yet.</div>`;
+    root.innerHTML=`<div class="small">${escapeHtml(t("noRunningLow"))}</div>`;
     return;
   }
   root.innerHTML=arr.map(x=>`
     <div class="suggestion">
       <div>
-        <strong>${escapeHtml(x.name)}</strong>
+        <strong>${escapeHtml(itemDisplayName(x))}</strong>
         ${itemNumbersHtml(x)}
-        <small>last purchased ${x.elapsed} days ago, usually every ${x.interval} days</small>
+        <small>${escapeHtml(t("lastPurchasedReason",{elapsed:x.elapsed,interval:x.interval}))}</small>
         ${listSummaryHtml(x.id)}
       </div>
       <div class="suggestion-actions">
-        <button type="button" class="suggestion-add" data-add-suggestion="${x.id}">Add</button>
+        <button type="button" class="suggestion-add" data-add-suggestion="${x.id}">${escapeHtml(t("add"))}</button>
       </div>
     </div>`).join("");
 }
@@ -1697,7 +2091,7 @@ function imageHtml(item,cart=false){
     <img class="${imgClass}"
       src="${escapeHtml(image.src)}"
       data-fallback="${escapeHtml(image.fallback)}"
-      alt="${escapeHtml(item.name)}"
+      alt="${escapeHtml(itemDisplayName(item))}"
       loading="lazy"
       referrerpolicy="no-referrer"
       onerror="
@@ -1720,12 +2114,12 @@ function renderCategories(){
     ? state.categories
     : state.categories.filter(cat=>cat.id===state.categoryFilter);
   root.innerHTML=visibleCategories.map(cat=>{
-    const items=cat.items.filter(i=>!isArchived(i.id) && !isSheetArchiveProduct(i) && (!q||[i.name,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
+    const items=cat.items.filter(i=>!isArchived(i.id) && !isSheetArchiveProduct(i) && (!q||[i.name,i.rusName,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
     if(!items.length) return "";
     return `
       <section class="category">
         <div class="category-head">
-          <div class="category-name">${escapeHtml(cat.name)}</div>
+          <div class="category-name">${escapeHtml(categoryDisplayName(cat.name))}</div>
         </div>
         <div class="items">
           ${items.map(item=>{
@@ -1737,34 +2131,34 @@ function renderCategories(){
                 <div class="item-content">
                   ${imageHtml(item)}
                   <div class="item-main">
-                    <button type="button" class="item-name item-name-button" data-detail="${item.id}">${escapeHtml(item.name)}</button>
+                    <button type="button" class="item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
                     ${itemNumbersHtml(item)}
-                    <div class="item-unit">${item.weight?escapeHtml(item.weight):`Unit: ${escapeHtml(item.unit)}`}</div>
+                    <div class="item-unit">${item.weight?escapeHtml(item.weight):`${escapeHtml(t("unit"))}: ${escapeHtml(item.unit)}`}</div>
                     ${item.description?`<div class="item-unit" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</div>`:""}
                     ${priceBadge(item.id)}
                     ${listSummaryHtml(item.id)}
                   </div>
                 </div>
                 <div class="qty">
-                  <div class="list-pick" aria-label="Choose shopping list">
+                  <div class="list-pick" aria-label="${escapeHtml(t("chooseList"))}">
                     ${LIST_NUMBERS.map(listNo=>`
                       <button
                         type="button"
                         class="${activeList===listNo?"selected":""}"
                         data-list-select="${item.id}|${listNo}"
-                        title="Add to List ${listNo}"
-                        aria-label="Choose List ${listNo}"
+                        title="${escapeHtml(t("addToListNumber",{number:listNo}))}"
+                        aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
                       >${listNo}</button>
                     `).join("")}
                   </div>
                   ${activeListQty?`
-                    <button class="minus" data-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+                    <button class="minus" data-minus="${item.id}" aria-label="${escapeHtml(t("decreaseList",{number:activeList}))}">−</button>
                     <strong>${activeListQty}</strong>
-                    <button class="plus" data-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+                    <button class="plus" data-plus="${item.id}" aria-label="${escapeHtml(t("increaseList",{number:activeList}))}">+</button>
                   `:`
-                    <button class="add" data-plus="${item.id}">Add</button>
+                    <button class="add" data-plus="${item.id}">${escapeHtml(t("add"))}</button>
                   `}
-                  <button class="remove" data-archive="${item.id}" title="Move to Archive" aria-label="Archive ${escapeHtml(item.name)}">×</button>
+                  <button class="remove" data-archive="${item.id}" title="${escapeHtml(t("moveToArchive"))}" aria-label="${escapeHtml(t("archiveProduct",{name:itemDisplayName(item)}))}">×</button>
                 </div>
               </div>`;
           }).join("")}
@@ -1778,16 +2172,16 @@ function renderCategoryFilter(){
   const button=document.getElementById("categoryFilterBtn");
   if(!root || !button) return;
   const options=[
-    {id:"all",name:"All categories"},
-    ...state.categories.map(category=>({id:category.id,name:category.name}))
+    {id:"all",name:t("allCategories")},
+    ...state.categories.map(category=>({id:category.id,name:categoryDisplayName(category.name)}))
   ];
   const selected=options.some(option=>option.id===state.categoryFilter)
     ? state.categoryFilter
     : "all";
   state.categoryFilter=selected;
   button.classList.toggle("active",selected!=="all");
-  const selectedName=options.find(option=>option.id===selected)?.name||"All categories";
-  button.title=selected==="all"?"Filter products by category":`Category: ${selectedName}`;
+  const selectedName=options.find(option=>option.id===selected)?.name||t("allCategories");
+  button.title=selected==="all"?t("filterProducts"):t("categorySelected",{name:selectedName});
   button.setAttribute("aria-label",button.title);
   root.innerHTML=options.map(option=>`
     <button
@@ -1811,8 +2205,8 @@ function renderCart(){
   document.getElementById("cartCount").textContent=String(itemCount);
   document.getElementById("cartButton").disabled=!itemCount;
   document.getElementById("checkoutSummary").textContent=itemCount
-    ? `${itemCount} item${itemCount===1?"":"s"} · ${nonEmptyLists} list${nonEmptyLists===1?"":"s"}`
-    : "Your cart is empty";
+    ? t("cartSummary",{items:itemCount,lists:nonEmptyLists})
+    : t("emptyCart");
 
   if(!itemCount && state.cartOpen) closeCheckout();
 
@@ -1823,18 +2217,18 @@ function renderCart(){
     return `
       <section class="cart-list-group" data-cart-list="${listNo}">
         <div class="cart-list-head">
-          <label class="cart-list-name-editor" title="Rename this list">
+          <label class="cart-list-name-editor" title="${escapeHtml(t("renameList"))}">
             <input
               class="cart-list-name-input"
               data-list-name="${listNo}"
               type="text"
               maxlength="40"
               value="${escapeHtml(listName(listNo))}"
-              aria-label="Name for List ${listNo}"
+              aria-label="${escapeHtml(t("listNameLabel",{number:listNo}))}"
             />
             <span class="cart-list-name-edit-icon" aria-hidden="true">✎</span>
           </label>
-          <div class="cart-list-subtotal">Subtotal: <span id="listSubtotal${listNo}">$0.00</span></div>
+          <div class="cart-list-subtotal">${escapeHtml(t("subtotal"))}: <span id="listSubtotal${listNo}">$0.00</span></div>
         </div>
         ${items.map(item=>{
           const quantity=qty(item.id,listNo);
@@ -1850,7 +2244,7 @@ function renderCart(){
                 <div class="check ${checked?"done":""}" data-check="${listNo}|${item.id}">${checked?"✓":""}</div>
                 ${imageHtml(item,true)}
                 <div class="cart-copy">
-                  <div class="cart-name ${checked?"done":""}">${escapeHtml(item.name)}</div>
+                  <div class="cart-name ${checked?"done":""}">${escapeHtml(itemDisplayName(item))}</div>
                   ${receiptLinesHtml(item,"cart-receipt")}
                   <div class="cart-add-another">
                     <button
@@ -1858,37 +2252,37 @@ function renderCart(){
                       class="cart-add-another-btn"
                       data-cart-add-menu="${listNo}|${item.id}"
                       aria-expanded="false"
-                    >+ Another List</button>
+                    >${escapeHtml(t("anotherList"))}</button>
                     <div class="cart-add-another-menu" role="menu">
-                      <div class="cart-add-another-label">Add one to</div>
+                      <div class="cart-add-another-label">${escapeHtml(t("addOneTo"))}</div>
                       <div class="cart-add-another-options">
                         ${LIST_NUMBERS.map(targetList=>`
                           <button
                             type="button"
                             data-cart-add-to="${listNo}|${item.id}|${targetList}"
                             role="menuitem"
-                            aria-label="Add one ${escapeHtml(item.name)} to List ${targetList}"
+                            aria-label="${escapeHtml(t("addOneToList",{name:itemDisplayName(item),number:targetList}))}"
                           >${targetList}</button>
                         `).join("")}
                       </div>
                     </div>
                   </div>
                 </div>
-                <div class="cart-list-pick" aria-label="Move product to another list">
+                <div class="cart-list-pick" aria-label="${escapeHtml(t("moveAnotherList"))}">
                   ${LIST_NUMBERS.map(targetList=>`
                     <button
                       type="button"
                       class="${targetList===listNo?"selected":""}"
                       data-cart-move="${listNo}|${item.id}|${targetList}"
-                      title="Move to List ${targetList}"
-                      aria-label="Move ${escapeHtml(item.name)} to List ${targetList}"
+                      title="${escapeHtml(t("moveToList",{number:targetList}))}"
+                      aria-label="${escapeHtml(t("moveProductToList",{name:itemDisplayName(item),number:targetList}))}"
                     >${targetList}</button>
                   `).join("")}
                 </div>
                 <div class="cart-item-controls">
-                  <button type="button" class="cart-qty-minus" data-cart-minus="${listNo}|${item.id}" aria-label="Decrease quantity">−</button>
+                  <button type="button" class="cart-qty-minus" data-cart-minus="${listNo}|${item.id}" aria-label="${escapeHtml(t("decreaseQuantity"))}">−</button>
                   <span class="cart-qty-value">${quantity}</span>
-                  <button type="button" class="cart-qty-plus" data-cart-plus="${listNo}|${item.id}" aria-label="Increase quantity">+</button>
+                  <button type="button" class="cart-qty-plus" data-cart-plus="${listNo}|${item.id}" aria-label="${escapeHtml(t("increaseQuantity"))}">+</button>
                 </div>
                 <input
                   class="price-input"
@@ -1898,11 +2292,11 @@ function renderCart(){
                   inputmode="decimal"
                   pattern="[0-9]*[.,]?[0-9]{0,2}"
                   value="${unitPrice?unitPrice.toFixed(2):""}"
-                  placeholder="price $"
-                  aria-label="Unit price for ${escapeHtml(item.name)}"
+                  placeholder="${escapeHtml(t("pricePlaceholder"))}"
+                  aria-label="${escapeHtml(t("unitPriceFor",{name:itemDisplayName(item)}))}"
                 />
                 <div class="cart-line-total" data-line-total="${listNo}|${item.id}">$${lineTotal.toFixed(2)}</div>
-                <button type="button" class="cart-remove-item" data-cart-remove="${listNo}|${item.id}" title="Remove from cart" aria-label="Remove ${escapeHtml(item.name)} from cart">×</button>
+                <button type="button" class="cart-remove-item" data-cart-remove="${listNo}|${item.id}" title="${escapeHtml(t("removeFromCart"))}" aria-label="${escapeHtml(t("removeProductFromCart",{name:itemDisplayName(item)}))}">×</button>
               </div>
             </div>`;
         }).join("")}
@@ -1953,6 +2347,7 @@ function closeCheckout(){
   document.body.classList.remove("checkout-open");
 }
 function render(){
+  applyLanguage();
   renderSuggestions();
   renderCategories();
   renderCategoryFilter();
@@ -2093,8 +2488,12 @@ function cleanProductRows(rows,{archiveLayout=false}={}){
     const namedCost=sheetValue(row,["Cost","Price"]);
     const category=archiveLayout && cells.length>=11 ? (cells[9]||namedCategory) : namedCategory;
     const costValue=archiveLayout && cells.length>=11 ? (cells[10]??namedCost) : namedCost;
+    const rusName=archiveLayout && cells.length>=11
+      ? (cells[8]||sheetValue(row,["Rus","Russian","Russian Name"]))
+      : sheetValue(row,["Rus","Russian","Russian Name"]);
     return {
     name:String(sheetValue(row,["Item","Name","Product"] )||"").trim(),
+    rusName:String(rusName||"").trim(),
     itemNumber:String(sheetValue(row,["#","Item #","Item Number","SKU"] )||"").replace(/\.0$/,"" ).trim(),
     cost:parseCost(costValue),
     pic:normalizeImageUrl(sheetValue(row,["Pic Dropbox","Dropbox Pic","Pic URL","Pic","Picture","Image","Image URL","Photo"])),
@@ -2133,6 +2532,7 @@ function replaceProductsFromRows(rows){
     const created={
       id,
       name:row.name||`Costco Item ${itemNumber}`,
+      rusName:row.rusName||item?.rusName||"",
       itemNumber,
       receipt:itemNumber?[`${itemNumber} - ${(row.name||"ITEM").toUpperCase()}`]:[],
       unit:row.weight||"pc",
@@ -2172,6 +2572,7 @@ function replaceArchiveProductsFromRows(rows){
       ...(existing||{}),
       id,
       name:row.name||existing?.name||`Costco Item ${itemNumber}`,
+      rusName:row.rusName||existing?.rusName||"",
       itemNumber:itemNumber||existing?.itemNumber||"",
       receipt:itemNumber?[`${itemNumber} - ${(row.name||existing?.name||"ITEM").toUpperCase()}`]:(existing?.receipt||[]),
       unit:row.weight||existing?.unit||"pc",
@@ -2193,7 +2594,7 @@ function replaceArchiveProductsFromRows(rows){
   return {rows:state.sheetArchiveItems.length};
 }
 async function loadFromSheet(){
-  setSheetStatus("Loading products from Google Sheet...");
+  setSheetStatus(state.language==="ru"?"Загрузка товаров из Google Таблицы...":"Loading products from Google Sheet...");
   const archiveTab=CONFIG.GOOGLE_SHEET_ARCHIVE_TAB||"Archive";
   const archiveGid=CONFIG.GOOGLE_SHEET_ARCHIVE_GID||"899246934";
   const archiveRequest=fetchPublicSheetRows(archiveTab,archiveGid)
@@ -2211,12 +2612,12 @@ async function loadFromSheet(){
       console.warn("Archive sheet load failed; using saved Archive products",archiveLoad.error);
     }
     render();
-    setSheetStatus(`${result.rows} product row${result.rows===1?"":"s"} loaded · ${archiveResult.rows} archive row${archiveResult.rows===1?"":"s"} loaded`);
-    toast(archiveLoad.rows?"Products and Archive refreshed":"Products refreshed · using saved Archive");
+    setSheetStatus(t("productsRowsLoaded",{products:result.rows,archive:archiveResult.rows}));
+    toast(archiveLoad.rows?t("productsArchiveRefreshed"):t("productsRefreshedSavedArchive"));
   }catch(error){
     console.error(error);
-    setSheetStatus("Could not read the Google Sheet. Confirm the tab is named Items and set Share → General access → Anyone with the link → Viewer.",true);
-    toast("Using saved product data");
+    setSheetStatus(t("sheetLoadError"),true);
+    toast(t("usingSavedProducts"));
   }
 }
 
@@ -2263,7 +2664,7 @@ function saveOrder(){
   state.orders.push(order);
   saveLocal();
   queueSync("saveOrder",order);
-  toast("Order and all three lists saved");
+  toast(t("orderSaved"));
   render();
 }
 function copyList(){
@@ -2282,17 +2683,17 @@ function copyList(){
       const lineTotal=price*qty(item.id,listNo);
       subtotal+=lineTotal;
 
-      return `${item.name}${primaryReceipt(item)?` | ${primaryReceipt(item)}`:""} — ${qty(item.id,listNo)} ${item.weight||item.unit} × $${price.toFixed(2)} = $${lineTotal.toFixed(2)}`;
+      return `${itemDisplayName(item)}${primaryReceipt(item)?` | ${primaryReceipt(item)}`:""} — ${qty(item.id,listNo)} ${item.weight||item.unit} × $${price.toFixed(2)} = $${lineTotal.toFixed(2)}`;
     });
 
     grandTotal+=subtotal;
-    sections.push([currentListName,...lines,`${currentListName} subtotal: $${subtotal.toFixed(2)}`].join("\n"));
+    sections.push([currentListName,...lines,t("listSubtotal",{name:currentListName,total:subtotal.toFixed(2)})].join("\n"));
   });
 
-  const text=[...sections,`ESTIMATED TOTAL: $${grandTotal.toFixed(2)}`].join("\n\n");
+  const text=[...sections,`${t("pdfEstimatedTotal")}: $${grandTotal.toFixed(2)}`].join("\n\n");
   navigator.clipboard?.writeText(text)
-    .then(()=>toast("All lists copied"))
-    .catch(()=>toast("Unable to copy"));
+    .then(()=>toast(t("allListsCopied")))
+    .catch(()=>toast(t("copyFailed")));
 }
 let pdfMakeLoaderPromise=null;
 function loadExternalScript(src){
@@ -2352,7 +2753,7 @@ function cartPdfData(){
       const lineTotal=unitPrice*quantity;
 
       rows.push({
-        name:item.name||"Product",
+        name:itemDisplayName(item),
         itemNumber:receiptItemNumber(item)||"",
         quantity,
         unitPrice,
@@ -2379,9 +2780,9 @@ function cartPdfDocument(report,dateLabel){
       ],
       margin:[0,0,0,5]
     },
-    {text:"SHOPPING CART",style:"title"},
+    {text:t("pdfCartTitle"),style:"title"},
     {
-      text:`${report.itemCount} item${report.itemCount===1?"":"s"} | ${report.lists.length} list${report.lists.length===1?"":"s"}`,
+      text:`${t("itemCount",{count:report.itemCount})} | ${t("listCount",{count:report.lists.length})}`,
       style:"summary",
       margin:[0,0,0,16]
     }
@@ -2390,11 +2791,11 @@ function cartPdfDocument(report,dateLabel){
   report.lists.forEach(list=>{
     const body=[
       [
-        {text:"Product",style:"tableHeader"},
-        {text:"Item #",style:"tableHeader"},
-        {text:"Qty",style:"tableHeader",alignment:"center"},
-        {text:"Price",style:"tableHeader",alignment:"right"},
-        {text:"Total",style:"tableHeader",alignment:"right"}
+        {text:t("pdfProduct"),style:"tableHeader"},
+        {text:t("pdfItemNumber"),style:"tableHeader"},
+        {text:t("pdfQuantity"),style:"tableHeader",alignment:"center"},
+        {text:t("pdfPrice"),style:"tableHeader",alignment:"right"},
+        {text:t("pdfTotal"),style:"tableHeader",alignment:"right"}
       ],
       ...list.rows.map(row=>[
         {text:row.name,style:"productName"},
@@ -2427,7 +2828,7 @@ function cartPdfDocument(report,dateLabel){
         margin:[0,0,0,6]
       },
       {
-        text:`${list.name} subtotal: $${list.subtotal.toFixed(2)}`,
+        text:t("listSubtotal",{name:list.name,total:list.subtotal.toFixed(2)}),
         style:"subtotal",
         margin:[0,0,0,15]
       }
@@ -2443,12 +2844,12 @@ function cartPdfDocument(report,dateLabel){
     },
     {
       columns:[
-        {text:"ESTIMATED TOTAL",style:"grandTotalLabel"},
+        {text:t("pdfEstimatedTotal"),style:"grandTotalLabel"},
         {text:`$${report.grandTotal.toFixed(2)}`,style:"grandTotal"}
       ]
     },
     {
-      text:"Prices are estimates based on the values currently shown in the POKPOK cart.",
+      text:t("pdfNote"),
       style:"note",
       margin:[0,9,0,0]
     }
@@ -2456,15 +2857,15 @@ function cartPdfDocument(report,dateLabel){
 
   return {
     info:{
-      title:`POKPOK Cart - ${dateLabel}`,
+      title:`POKPOK ${t("pdfCartTitle")} - ${dateLabel}`,
       author:"POKPOK",
-      subject:"Shopping cart"
+      subject:t("pdfSubject")
     },
     pageSize:"LETTER",
     pageMargins:[36,42,36,42],
     content,
     footer:(currentPage,pageCount)=>({
-      text:`POKPOK | Page ${currentPage} of ${pageCount}`,
+      text:t("pdfPage",{current:currentPage,total:pageCount}),
       alignment:"center",
       color:"#818898",
       fontSize:8,
@@ -2494,14 +2895,14 @@ function cartPdfDocument(report,dateLabel){
 async function saveCartPdf(){
   const report=cartPdfData();
   if(!report.itemCount){
-    toast("Your cart is empty");
+    toast(t("emptyCart"));
     return;
   }
 
   const button=document.getElementById("savePdfBtn");
   const oldLabel=button.textContent;
   button.disabled=true;
-  button.textContent="Preparing...";
+  button.textContent=t("preparing");
 
   try{
     const pdfMake=await loadPdfMake();
@@ -2511,7 +2912,7 @@ async function saveCartPdf(){
       String(now.getMonth()+1).padStart(2,"0"),
       String(now.getDate()).padStart(2,"0")
     ].join("-");
-    const dateLabel=now.toLocaleDateString("en-US",{
+    const dateLabel=now.toLocaleDateString(state.language==="ru"?"ru-RU":"en-US",{
       year:"numeric",
       month:"long",
       day:"numeric"
@@ -2519,13 +2920,13 @@ async function saveCartPdf(){
     await pdfMake
       .createPdf(cartPdfDocument(report,dateLabel))
       .download(`POKPOK-Cart-${fileDate}.pdf`);
-    toast("PDF saved");
+    toast(t("pdfSaved"));
   }catch(error){
     console.error("PDF generation failed",error);
-    toast("Could not create PDF");
+    toast(t("pdfFailed"));
   }finally{
     button.disabled=false;
-    button.textContent=oldLabel;
+    button.textContent=t("savePdf");
   }
 }
 function clearCart(){
@@ -2546,10 +2947,10 @@ function productNumber(item){
 }
 function currentPriceSource(item,hist){
   const sheetPrice=Number(item.sheetPrice);
-  if(Number.isFinite(sheetPrice)&&sheetPrice>0) return "Google Sheet price";
-  if(hist.length) return "Latest receipt price";
-  if(Number(item.estimatedPrice)>0) return item.priceSource||"Online estimate";
-  return "Price not available";
+  if(Number.isFinite(sheetPrice)&&sheetPrice>0) return t("googleSheetPrice");
+  if(hist.length) return t("latestReceiptPrice");
+  if(Number(item.estimatedPrice)>0) return t("onlinePriceEstimate");
+  return t("priceNotAvailable");
 }
 function drawerImageHtml(item){
   const image=itemImageData(item);
@@ -2560,7 +2961,7 @@ function drawerImageHtml(item){
     <img class="drawer-image"
       src="${escapeHtml(image.src)}"
       data-fallback="${escapeHtml(image.fallback)}"
-      alt="${escapeHtml(item.name)}"
+      alt="${escapeHtml(itemDisplayName(item))}"
       referrerpolicy="no-referrer"
       onerror="
         if(this.dataset.fallback && !this.dataset.fallbackUsed){
@@ -2578,13 +2979,13 @@ function productLinkHtml(item){
   const link=normalizeProductLink(item.productLink||item.link||"");
 
   if(!link){
-    return `<div class="drawer-link-missing">Official product link has not been added yet.</div>`;
+    return `<div class="drawer-link-missing">${escapeHtml(t("noOfficialLink"))}</div>`;
   }
 
-  let label="View Official Product Page";
+  let label=t("viewOfficialPage");
   try{
     const hostname=new URL(link).hostname.toLowerCase();
-    if(hostname.includes("costco")) label="View Product on Costco";
+    if(hostname.includes("costco")) label=t("viewOnCostco");
   }catch{}
 
   return `<a
@@ -2618,91 +3019,91 @@ function renderProductDrawer(itemId){
 
   const historyHtml=hist.length
     ? hist.map(row=>`<div class="drawer-history-row"><span>${escapeHtml(row.date)}</span><strong>$${Number(row.price).toFixed(2)}</strong></div>`).join("")
-    : `<div class="small">No purchase price history yet.</div>`;
+    : `<div class="small">${escapeHtml(t("noPriceHistory"))}</div>`;
 
   const receiptHtml=receipts.length
     ? receipts.map(line=>`<div class="drawer-receipt">${escapeHtml(line)}</div>`).join("")
-    : `<div class="small">No receipt name recorded.</div>`;
+    : `<div class="small">${escapeHtml(t("noReceiptName"))}</div>`;
 
   document.getElementById("productDrawerContent").innerHTML=`
     ${drawerImageHtml(item)}
-    <h2 class="drawer-product-name">${escapeHtml(item.name)}</h2>
-    <div class="drawer-category">${escapeHtml(item.categoryName||"Uncategorized")}</div>
+    <h2 class="drawer-product-name">${escapeHtml(itemDisplayName(item))}</h2>
+    <div class="drawer-category">${escapeHtml(categoryDisplayName(item.categoryName))}</div>
 
     <div class="drawer-price">${currentPrice>0?`$${currentPrice.toFixed(2)}`:"—"}</div>
     <div class="drawer-price-source">${escapeHtml(priceSource)}${item.priceDate?` · ${escapeHtml(item.priceDate)}`:""}</div>
     ${productLinkHtml(item)}
 
     <section class="drawer-section">
-      <div class="drawer-section-title">Product Information</div>
+      <div class="drawer-section-title">${escapeHtml(t("productInformation"))}</div>
       <div class="drawer-detail-grid">
-        <div class="drawer-detail-label">Item number</div>
+        <div class="drawer-detail-label">${escapeHtml(t("itemNumber"))}</div>
         <div class="drawer-detail-value">${itemNo?escapeHtml(itemNo):"—"}</div>
 
-        <div class="drawer-detail-label">Category</div>
-        <div class="drawer-detail-value">${escapeHtml(item.categoryName||"—")}</div>
+        <div class="drawer-detail-label">${escapeHtml(t("category"))}</div>
+        <div class="drawer-detail-value">${escapeHtml(categoryDisplayName(item.categoryName))}</div>
 
-        <div class="drawer-detail-label">Weight / size</div>
+        <div class="drawer-detail-label">${escapeHtml(t("weightSize"))}</div>
         <div class="drawer-detail-value">${escapeHtml(item.weight||item.unit||"—")}</div>
 
-        <div class="drawer-detail-label">Cart quantity</div>
+        <div class="drawer-detail-label">${escapeHtml(t("cartQuantity"))}</div>
         <div class="drawer-detail-value">${quantity}</div>
 
-        <div class="drawer-detail-label">Last purchase</div>
+        <div class="drawer-detail-label">${escapeHtml(t("lastPurchase"))}</div>
         <div class="drawer-detail-value">${lastPurchase?escapeHtml(lastPurchase):"—"}</div>
 
-        <div class="drawer-detail-label">Buy interval</div>
-        <div class="drawer-detail-value">${interval?`About every ${interval} days`:"—"}</div>
+        <div class="drawer-detail-label">${escapeHtml(t("buyInterval"))}</div>
+        <div class="drawer-detail-value">${interval?escapeHtml(t("everyDays",{count:interval})):"—"}</div>
       </div>
     </section>
 
     <section class="drawer-section">
-      <div class="drawer-section-title">Receipt Name</div>
+      <div class="drawer-section-title">${escapeHtml(t("receiptName"))}</div>
       ${receiptHtml}
     </section>
 
     <section class="drawer-section">
-      <div class="drawer-section-title">Description</div>
-      <p class="drawer-description">${item.description?escapeHtml(item.description):"No description added yet."}</p>
+      <div class="drawer-section-title">${escapeHtml(t("description"))}</div>
+      <p class="drawer-description">${item.description?escapeHtml(item.description):escapeHtml(t("noDescription"))}</p>
     </section>
 
     <section class="drawer-section">
-      <div class="drawer-section-title">Price Summary</div>
+      <div class="drawer-section-title">${escapeHtml(t("priceSummary"))}</div>
       <div class="drawer-stats">
-        <div class="drawer-stat"><span>Current</span><strong>${currentPrice>0?`$${currentPrice.toFixed(2)}`:"—"}</strong></div>
-        <div class="drawer-stat"><span>Last paid</span><strong>${latest?`$${Number(latest.price).toFixed(2)}`:"—"}</strong></div>
-        <div class="drawer-stat"><span>Average</span><strong>${avg!==null?`$${avg.toFixed(2)}`:"—"}</strong></div>
-        <div class="drawer-stat"><span>Lowest</span><strong>${min!==null?`$${min.toFixed(2)}`:"—"}</strong></div>
-        <div class="drawer-stat"><span>Highest</span><strong>${max!==null?`$${max.toFixed(2)}`:"—"}</strong></div>
-        <div class="drawer-stat"><span>Records</span><strong>${hist.length}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("currentPrice"))}</span><strong>${currentPrice>0?`$${currentPrice.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("lastPaidLabel"))}</span><strong>${latest?`$${Number(latest.price).toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("average"))}</span><strong>${avg!==null?`$${avg.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("lowest"))}</span><strong>${min!==null?`$${min.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("highest"))}</span><strong>${max!==null?`$${max.toFixed(2)}`:"—"}</strong></div>
+        <div class="drawer-stat"><span>${escapeHtml(t("records"))}</span><strong>${hist.length}</strong></div>
       </div>
     </section>
 
     <section class="drawer-section">
-      <div class="drawer-section-title">Price History</div>
+      <div class="drawer-section-title">${escapeHtml(t("priceHistory"))}</div>
       ${historyHtml}
     </section>
 
     <div class="drawer-quantity">
       <div class="drawer-list-tools">
-        <div style="font-size:12px;color:var(--muted)">Shopping List ${activeList}</div>
+        <div style="font-size:12px;color:var(--muted)">${escapeHtml(t("shoppingList",{number:activeList}))}</div>
         <div class="drawer-list-pick">
           ${LIST_NUMBERS.map(listNo=>`
             <button
               type="button"
               class="${activeList===listNo?"selected":""}"
               data-list-select="${item.id}|${listNo}"
-              aria-label="Choose List ${listNo}"
+              aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
             >${listNo}</button>
           `).join("")}
         </div>
-        <strong>${quantity?`${quantity} ${escapeHtml(item.unit||"")}`:"Not added"}</strong>
+        <strong>${quantity?`${quantity} ${escapeHtml(item.unit||"")}`:escapeHtml(t("notAdded"))}</strong>
         ${allListsSummary?`<div class="drawer-list-summary">${escapeHtml(allListsSummary)}</div>`:""}
       </div>
       <div class="drawer-qty-controls">
-        <button type="button" class="drawer-qty-minus" data-drawer-minus="${item.id}" aria-label="Decrease quantity in List ${activeList}">−</button>
+        <button type="button" class="drawer-qty-minus" data-drawer-minus="${item.id}" aria-label="${escapeHtml(t("decreaseList",{number:activeList}))}">−</button>
         <span class="drawer-qty-value">${quantity}</span>
-        <button type="button" class="drawer-qty-plus" data-drawer-plus="${item.id}" aria-label="Increase quantity in List ${activeList}">+</button>
+        <button type="button" class="drawer-qty-plus" data-drawer-plus="${item.id}" aria-label="${escapeHtml(t("increaseList",{number:activeList}))}">+</button>
       </div>
     </div>
   `;
@@ -2762,7 +3163,7 @@ document.addEventListener("click",e=>{
     if(item && LIST_NUMBERS.includes(targetList)){
       state.itemListSelection[itemId]=targetList;
       setQty(itemId,qty(itemId,targetList)+1,targetList);
-      toast(`${item.name} added to List ${targetList}`);
+      toast(t("addedToList",{name:itemDisplayName(item),number:targetList}));
     }
     return;
   }
@@ -2796,7 +3197,7 @@ document.addEventListener("click",e=>{
     const item=allItems().find(product=>product.id===itemId);
     setSelectedList(itemId,1);
     setQty(itemId,qty(itemId,1)+1,1);
-    if(item) toast(`${item.name} added to List 1`);
+    if(item) toast(t("addedToList",{name:itemDisplayName(item),number:1}));
   }
   if(t.dataset.cartPlus){
     const [listText,...idParts]=t.dataset.cartPlus.split("|");
@@ -2888,6 +3289,10 @@ document.getElementById("cartItems").addEventListener("keydown",e=>{
   }
 });
 document.getElementById("searchInput").addEventListener("input",e=>{state.query=e.target.value;renderCategories()});
+document.getElementById("languageSwitch").addEventListener("click",e=>{
+  const button=e.target.closest("[data-language]");
+  if(button) setLanguage(button.dataset.language);
+});
 document.getElementById("refreshSheetBtn").onclick=loadFromSheet;
 document.getElementById("categoryFilterBtn").onclick=()=>{
   renderCategoryFilter();
