@@ -608,6 +608,45 @@
     .cart-actions button{
       flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700
     }
+    .checkout-recommendations{
+      margin-top:24px;padding-top:18px;border-top:1px solid #D2D2D2
+    }
+    .checkout-recommendations-head{
+      display:flex;align-items:flex-end;justify-content:space-between;
+      gap:12px;margin-bottom:12px
+    }
+    .checkout-recommendations-title{display:block;font-size:17px;font-weight:900}
+    .checkout-recommendations-subtitle{margin-top:3px;color:var(--muted);font-size:11px}
+    .checkout-recommendations-grid{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px
+    }
+    .checkout-recommendation{
+      min-width:0;display:grid;grid-template-columns:44px minmax(0,1fr);
+      gap:10px;padding:11px;border:1px solid #D2D2D2;border-radius:10px;background:#FAFAF8
+    }
+    .checkout-recommendation .item-photo-wrap{width:44px;height:44px;flex-basis:44px}
+    .checkout-recommendation-copy{min-width:0}
+    .checkout-recommendation-name{
+      overflow:hidden;font-size:13px;font-weight:900;line-height:1.25;
+      text-overflow:ellipsis;white-space:nowrap
+    }
+    .checkout-recommendation-reason{
+      min-height:28px;margin-top:3px;color:var(--muted);font-size:10.5px;line-height:1.3
+    }
+    .checkout-recommendation-bottom{
+      grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px
+    }
+    .checkout-recommendation-price{font-size:12px;font-weight:900}
+    .checkout-recommendation-add{
+      border:0;border-radius:7px;padding:7px 10px;background:var(--yellow);
+      color:var(--ink);font-size:11px;font-weight:900
+    }
+    @media(max-width:700px){
+      .checkout-recommendations-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+    @media(max-width:480px){
+      .checkout-recommendations-grid{grid-template-columns:1fr}
+    }
     .outline{background:#FAFAF8;border:1px solid var(--line)}
     .save{background:var(--green);border:0;color:#fff}
     .trash{flex:0 0 auto!important;border:1px solid var(--line);background:#FAFAF8;color:var(--orange)}
@@ -860,6 +899,7 @@
       <button id="saveOrderBtn" class="save">Save Order</button>
       <button id="clearBtn" class="trash">🗑</button>
     </div>
+    <section id="checkoutRecommendations" class="checkout-recommendations" aria-labelledby="checkoutRecommendationsTitle"></section>
     </div>
   </section>
 </div>
@@ -907,7 +947,7 @@ const DEFAULT_CATEGORIES = [
     id:"dairy", name:"Dairy & Eggs", items:[
       {id:"eggs-cage-free",name:"Kirkland Cage Free Eggs",receipt:["637598 - KS CAGE FREE"],unit:"pack",defaultInterval:12},
       {id:"egg-whites",name:"Kirkland Egg Whites",receipt:["1063232 - KS EGG WHITE"],unit:"pack",defaultInterval:20},
-      {id:"whole-milk",name:"Whole Milk",receipt:["3 - WHOLE MILK"],unit:"pack",defaultInterval:7},
+      {id:"whole-milk",name:"Whole Milk",receipt:["3 - WHOLE MILK"],unit:"pack",defaultInterval:2},
       {id:"sour-cream",name:"Sour Cream",receipt:["331222 - SOUR CREAM"],unit:"pack",defaultInterval:18},
       {id:"havarti",name:"Sliced Havarti Cheese",receipt:["2006243 - CSTLOHAVARTI"],unit:"pack",defaultInterval:21},
       {id:"mozzarella",name:"Kosher Mozzarella",receipt:["406852 - KOSHER MOZZ"],unit:"pack",defaultInterval:21},
@@ -1134,6 +1174,8 @@ function ensureDefaultProductsPresent(){
       }
     });
   });
+  const wholeMilk=mainItems().find(item=>item.id==="whole-milk");
+  if(wholeMilk) wholeMilk.defaultInterval=2;
   saveLocal();
 }
 function isArchived(itemId){
@@ -1465,6 +1507,62 @@ function getSuggestions(){
     .slice(0,6);
 }
 
+function getCheckoutRecommendations(){
+  return allItems()
+    .filter(item=>!isArchived(item.id) && !isSheetArchiveProduct(item) && !totalQty(item.id))
+    .map(item=>{
+      const last=getLastPurchaseDate(item.id);
+      if(!last) return null;
+      const elapsed=dayDiff(last);
+      const interval=Number(item.defaultInterval)||14;
+      return {...item,elapsed,interval,score:elapsed/interval};
+    })
+    .filter(Boolean)
+    .filter(item=>item.score>=.65)
+    .sort((a,b)=>b.score-a.score || a.interval-b.interval)
+    .slice(0,6);
+}
+
+function renderCheckoutRecommendations(){
+  const root=document.getElementById("checkoutRecommendations");
+  if(!root) return;
+  const items=getCheckoutRecommendations();
+
+  root.innerHTML=`
+    <div class="checkout-recommendations-head">
+      <div>
+        <strong id="checkoutRecommendationsTitle" class="checkout-recommendations-title">You may also need</strong>
+        <div class="checkout-recommendations-subtitle">Based on how often you usually buy these products</div>
+      </div>
+    </div>
+    ${items.length?`
+      <div class="checkout-recommendations-grid">
+        ${items.map(item=>{
+          const price=itemUnitPrice(item);
+          return `
+            <article class="checkout-recommendation">
+              ${imageHtml(item,true)}
+              <div class="checkout-recommendation-copy">
+                <div class="checkout-recommendation-name">${escapeHtml(item.name)}</div>
+                <div class="checkout-recommendation-reason">
+                  Bought ${item.elapsed} day${item.elapsed===1?"":"s"} ago · usually every ${item.interval} days
+                </div>
+              </div>
+              <div class="checkout-recommendation-bottom">
+                <span class="checkout-recommendation-price">${price>0?`$${price.toFixed(2)}`:"Price unavailable"}</span>
+                <button
+                  type="button"
+                  class="checkout-recommendation-add"
+                  data-checkout-recommendation="${item.id}"
+                >+ Add to List 1</button>
+              </div>
+            </article>`;
+        }).join("")}
+      </div>
+    `:`<div class="small">Nothing else looks due right now.</div>`}
+  `;
+}
+
 function renderSuggestions(){
   const root=document.getElementById("suggestions");
   const arr=getSuggestions();
@@ -1745,6 +1843,7 @@ function renderCart(){
   }).join("");
 
   document.getElementById("cartItems").innerHTML=groups;
+  renderCheckoutRecommendations();
   updateCartTotal();
 }
 function updateCartTotal(){
@@ -2388,6 +2487,13 @@ document.addEventListener("click",e=>{
     const itemId=t.dataset.addSuggestion;
     setSelectedList(itemId,1);
     setQty(itemId,qty(itemId,1)+1,1);
+  }
+  if(t.dataset.checkoutRecommendation){
+    const itemId=t.dataset.checkoutRecommendation;
+    const item=allItems().find(product=>product.id===itemId);
+    setSelectedList(itemId,1);
+    setQty(itemId,qty(itemId,1)+1,1);
+    if(item) toast(`${item.name} added to List 1`);
   }
   if(t.dataset.cartPlus){
     const [listText,...idParts]=t.dataset.cartPlus.split("|");
