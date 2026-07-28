@@ -1499,7 +1499,34 @@ function normalizeImageUrl(value){
   if(imageFormula) url=imageFormula[1];
   const hyperlinkFormula=url.match(/^=HYPERLINK\(\s*["']([^"']+)["']/i);
   if(hyperlinkFormula) url=hyperlinkFormula[1];
-  return url;
+  url=url.replace(/&amp;/gi,"&").trim();
+
+  try{
+    const parsed=new URL(url);
+    if(parsed.protocol!=="https:" && parsed.protocol!=="http:") return "";
+
+    /* The sheet stores Dropbox share links. Convert them at runtime to
+       direct image links; no product-specific image URLs live in this HTML. */
+    if(/(^|\.)dropbox\.com$/i.test(parsed.hostname)){
+      parsed.hostname="dl.dropboxusercontent.com";
+      parsed.searchParams.delete("dl");
+      parsed.searchParams.delete("raw");
+      return parsed.href;
+    }
+
+    /* Also accept ordinary Google Drive share links placed in the same cell. */
+    if(parsed.hostname==="drive.google.com"){
+      const fileMatch=parsed.pathname.match(/\/file\/d\/([^/]+)/i);
+      const fileId=fileMatch?.[1]||parsed.searchParams.get("id");
+      if(fileId){
+        return `https://drive.google.com/uc?export=view&id=${encodeURIComponent(fileId)}`;
+      }
+    }
+
+    return parsed.href;
+  }catch{
+    return "";
+  }
 }
 
 function normalizeProductLink(value){
