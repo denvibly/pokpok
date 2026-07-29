@@ -374,21 +374,26 @@
       background:#fff;border:1px solid var(--line);border-radius:8px;
       padding:10px 10px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px
     }
-    .item.active{border-color:var(--ink)}
-    .item.active[data-selected-list="1"]{
-      border-color:var(--list-1-border);
-      background:#FAFBFC;
-      box-shadow:inset 4px 0 0 var(--list-1-border)
+    [data-selected-list="1"]{
+      --selected-list-card-bg:#FAFBFC;
+      --selected-list-border:var(--list-1-border)
     }
-    .item.active[data-selected-list="2"]{
-      border-color:var(--list-2-border);
-      background:#F7FCF8;
-      box-shadow:inset 4px 0 0 var(--list-2-border)
+    [data-selected-list="2"]{
+      --selected-list-card-bg:#F7FCF8;
+      --selected-list-border:var(--list-2-border)
     }
-    .item.active[data-selected-list="3"]{
-      border-color:var(--list-3-border);
-      background:#FFF7F9;
-      box-shadow:inset 4px 0 0 var(--list-3-border)
+    [data-selected-list="3"]{
+      --selected-list-card-bg:#FFF7F9;
+      --selected-list-border:var(--list-3-border)
+    }
+    .item[data-selected-list],
+    .suggestion[data-selected-list],
+    .archive-item[data-selected-list],
+    .checkout-recommendation[data-selected-list],
+    .cart-item[data-selected-list]{
+      border-color:var(--selected-list-border);
+      background:var(--selected-list-card-bg);
+      box-shadow:inset 4px 0 0 var(--selected-list-border)
     }
     .item-content{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
     .item-photo-wrap{
@@ -965,6 +970,13 @@
       display:flex;align-items:center;justify-content:space-between;gap:12px;
       position:sticky;bottom:-18px;background:#fff;border-top:1px solid var(--line);
       margin:18px -18px -18px;padding:14px 18px
+    }
+    .product-drawer[data-selected-list]{
+      border-left:4px solid var(--selected-list-border)
+    }
+    .product-drawer[data-selected-list] .drawer-quantity{
+      background:var(--selected-list-card-bg);
+      border-color:var(--selected-list-border)
     }
     .drawer-list-tools{display:flex;flex-direction:column;gap:7px}
     .drawer-list-pick{display:flex;align-items:center;gap:4px}
@@ -1886,7 +1898,7 @@ function renderArchive(){
     const activeListQty=qty(item.id,activeList);
     const price=itemUnitPrice(item);
     return `
-      <div class="archive-item">
+      <div class="archive-item" data-selected-list="${activeList}">
         ${imageHtml(item,true)}
         <div class="archive-item-copy">
           <button type="button" class="archive-item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
@@ -2155,7 +2167,7 @@ function renderCheckoutRecommendations(){
         ${items.map(item=>{
           const price=itemUnitPrice(item);
           return `
-            <article class="checkout-recommendation">
+            <article class="checkout-recommendation" data-selected-list="${selectedList(item.id)}">
               ${imageHtml(item,true)}
               <div class="checkout-recommendation-copy">
                 <div class="checkout-recommendation-name">${escapeHtml(itemDisplayName(item))}</div>
@@ -2193,7 +2205,7 @@ function renderSuggestions(){
     return;
   }
   root.innerHTML=arr.map(x=>`
-    <div class="suggestion">
+    <div class="suggestion" data-selected-list="${selectedList(x.id)}">
       <div>
         <strong>${escapeHtml(itemDisplayName(x))}</strong>
         ${itemNumbersHtml(x)}
@@ -2457,7 +2469,7 @@ function renderCart(){
           const checked=isChecked(listNo,item.id);
 
           return `
-            <div class="cart-item">
+            <div class="cart-item" data-selected-list="${listNo}">
               <div class="cart-row">
                 <div class="check ${checked?"done":""}" data-check="${listNo}|${item.id}">${checked?"✓":""}</div>
                 ${imageHtml(item,true)}
@@ -3272,6 +3284,7 @@ function renderProductDrawer(itemId){
     ? receipts.map(line=>`<div class="drawer-receipt">${escapeHtml(line)}</div>`).join("")
     : `<div class="small">${escapeHtml(t("noReceiptName"))}</div>`;
 
+  document.getElementById("productDrawer").dataset.selectedList=String(activeList);
   document.getElementById("productDrawerContent").innerHTML=`
     ${drawerImageHtml(item)}
     <h2 class="drawer-product-name">${escapeHtml(itemDisplayName(item))}</h2>
@@ -3452,15 +3465,15 @@ document.addEventListener("click",e=>{
   }
   if(t.dataset.addSuggestion){
     const itemId=t.dataset.addSuggestion;
-    setSelectedList(itemId,1);
-    setQty(itemId,qty(itemId,1)+1,1);
+    const listNo=selectedList(itemId);
+    setQty(itemId,qty(itemId,listNo)+1,listNo);
   }
   if(t.dataset.checkoutRecommendation){
     const itemId=t.dataset.checkoutRecommendation;
     const item=allItems().find(product=>product.id===itemId);
-    setSelectedList(itemId,1);
-    setQty(itemId,qty(itemId,1)+1,1);
-    if(item) toast(t("addedToList",{name:itemDisplayName(item),number:1}));
+    const listNo=selectedList(itemId);
+    setQty(itemId,qty(itemId,listNo)+1,listNo);
+    if(item) toast(t("addedToList",{name:itemDisplayName(item),number:listNo}));
   }
   if(t.dataset.cartPlus){
     const [listText,...idParts]=t.dataset.cartPlus.split("|");
