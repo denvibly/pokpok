@@ -2435,19 +2435,21 @@ function parseGviz(text){
     return obj;
   });
 }
-async function fetchPublicSheetRows(tabOverride="",gidOverride=""){
+async function fetchPublicSheetRows(tabOverride="",gidOverride="",{preferCsv=false}={}){
   const id=spreadsheetIdFromUrl(CONFIG.GOOGLE_SHEET_URL);
   const tab=tabOverride||CONFIG.GOOGLE_SHEET_TAB||"Items";
   const gid=gidOverride||CONFIG.GOOGLE_SHEET_GID||"0";
   if(!id) throw new Error("Spreadsheet ID is missing");
 
-  const gviz=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}&headers=1&_=${Date.now()}`;
-  try{
-    const res=await fetch(gviz,{cache:"no-store",credentials:"omit"});
-    if(!res.ok) throw new Error("Google Visualization request failed");
-    const rows=parseGviz(await res.text());
-    if(rows.length) return rows;
-  }catch(error){console.warn("GViz load failed",error)}
+  if(!preferCsv){
+    const gviz=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(tab)}&headers=1&_=${Date.now()}`;
+    try{
+      const res=await fetch(gviz,{cache:"no-store",credentials:"omit"});
+      if(!res.ok) throw new Error("Google Visualization request failed");
+      const rows=parseGviz(await res.text());
+      if(rows.length) return rows;
+    }catch(error){console.warn("GViz load failed",error)}
+  }
 
   const csv=`https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}/export?format=csv&gid=${encodeURIComponent(gid)}&_=${Date.now()}`;
   const res=await fetch(csv,{cache:"no-store",credentials:"omit"});
@@ -2486,21 +2488,19 @@ function cleanProductRows(rows,{archiveLayout=false}={}){
     const cells=Array.isArray(row?.__cells)?row.__cells:[];
     const namedCategory=sheetValue(row,["Category"]);
     const namedCost=sheetValue(row,["Cost","Price"]);
-    const category=archiveLayout && cells.length>=11 ? (cells[9]||namedCategory) : namedCategory;
-    const costValue=archiveLayout && cells.length>=11 ? (cells[10]??namedCost) : namedCost;
-    const rusName=archiveLayout && cells.length>=11
-      ? (cells[8]||sheetValue(row,["Rus","Russian","Russian Name"]))
-      : sheetValue(row,["Rus","Russian","Russian Name"]);
+    const tailCategory=archiveLayout && cells.length>=2 ? cells[cells.length-2] : "";
+    const tailCost=archiveLayout && cells.length ? cells[cells.length-1] : "";
+    const parsedNamedCost=parseCost(namedCost);
     return {
     name:String(sheetValue(row,["Item","Name","Product"] )||"").trim(),
-    rusName:String(rusName||"").trim(),
+    rusName:String(sheetValue(row,["Item Rus","Rus","Russian","Russian Name"])||"").trim(),
     itemNumber:String(sheetValue(row,["#","Item #","Item Number","SKU"] )||"").replace(/\.0$/,"" ).trim(),
-    cost:parseCost(costValue),
+    cost:parsedNamedCost!==null?parsedNamedCost:parseCost(tailCost),
     pic:normalizeImageUrl(sheetValue(row,["Pic Dropbox","Dropbox Pic","Pic URL","Pic","Picture","Image","Image URL","Photo"])),
     weight:String(sheetValue(row,["Weight","Size","Unit"] )||"").trim(),
     link:normalizeProductLink(sheetValue(row,["Link","Product Link","Costco Link","Official Link","Website","URL"])),
     description:String(sheetValue(row,["Description","Details"] )||"").trim(),
-    category:String(category||"").trim()
+    category:String(namedCategory||tailCategory||"").trim()
     };
   }).filter(r=>r.name||r.itemNumber);
 }
@@ -2597,7 +2597,7 @@ async function loadFromSheet(){
   setSheetStatus(state.language==="ru"?"Загрузка товаров из Google Таблицы...":"Loading products from Google Sheet...");
   const archiveTab=CONFIG.GOOGLE_SHEET_ARCHIVE_TAB||"Archive";
   const archiveGid=CONFIG.GOOGLE_SHEET_ARCHIVE_GID||"899246934";
-  const archiveRequest=fetchPublicSheetRows(archiveTab,archiveGid)
+  const archiveRequest=fetchPublicSheetRows(archiveTab,archiveGid,{preferCsv:true})
     .then(rows=>({rows,error:null}))
     .catch(error=>({rows:null,error}));
 
