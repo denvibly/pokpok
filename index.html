@@ -120,6 +120,42 @@
     .dark-btn{background:#2A3247;color:#fff}
     .filter-btn.active{background:var(--yellow);color:var(--ink)}
     .yellow-btn{background:var(--yellow);color:var(--ink)}
+    .filter-dropdown{
+      position:absolute;
+      top:calc(100% - 6px);
+      left:15px;
+      right:15px;
+      z-index:30;
+      display:none;
+      max-height:min(62vh,520px);
+      overflow:auto;
+      padding:14px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      background:#fff;
+      color:var(--ink);
+      box-shadow:0 14px 32px rgba(28,35,51,.24)
+    }
+    .filter-dropdown.open{display:block}
+    .filter-dropdown-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:12px
+    }
+    .filter-dropdown-head strong{font-size:14px}
+    .filter-dropdown-close{
+      width:30px;
+      height:30px;
+      padding:0;
+      border:0;
+      border-radius:7px;
+      background:#F4F3EF;
+      color:var(--ink);
+      font-size:20px;
+      line-height:1
+    }
     .archive-top-btn{
       gap:7px;
       padding:0 11px;
@@ -791,6 +827,12 @@
     .tag-filter-empty{color:var(--muted);font-size:12px}
     @media(max-width:480px){
       .category-filter-list{grid-template-columns:1fr}
+      .filter-dropdown{
+        left:8px;
+        right:8px;
+        max-height:68vh;
+        padding:12px
+      }
     }
     .history-list{margin-top:12px}
     .history-row{
@@ -992,7 +1034,7 @@
         type="button"
         title="Filter products by category"
         aria-label="Filter products by category"
-        aria-haspopup="dialog"
+        aria-controls="categoryFilterPanel"
         aria-expanded="false"
       >
         <svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true">
@@ -1015,6 +1057,31 @@
       </a>
 
     </div>
+    <section
+      id="categoryFilterPanel"
+      class="filter-dropdown"
+      aria-labelledby="categoryFilterTitle"
+      aria-hidden="true"
+    >
+      <div class="filter-dropdown-head">
+        <strong id="categoryFilterTitle">Filter products</strong>
+        <button
+          class="filter-dropdown-close"
+          type="button"
+          data-close="categoryFilterPanel"
+          aria-label="Close product filters"
+        >×</button>
+      </div>
+      <div class="filter-section-title" id="categoryFilterSectionTitle">Categories</div>
+      <div id="categoryFilterList" class="category-filter-list"></div>
+      <section id="tagFilterSection" class="tag-filter-section" aria-labelledby="tagFilterTitle">
+        <div class="tag-filter-head">
+          <div class="filter-section-title" id="tagFilterTitle">Tags</div>
+          <button id="clearTagFiltersBtn" class="clear-tag-filters" type="button">Clear tags</button>
+        </div>
+        <div id="tagFilterList" class="tag-filter-list"></div>
+      </section>
+    </section>
   </header>
 
   <main class="content">
@@ -1063,24 +1130,6 @@
     <section id="checkoutRecommendations" class="checkout-recommendations" aria-labelledby="checkoutRecommendationsTitle"></section>
     </div>
   </section>
-</div>
-
-<div id="categoryFilterModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="categoryFilterTitle">
-  <div class="modal-card">
-    <div class="modal-head">
-      <strong id="categoryFilterTitle">Filter by category</strong>
-      <button class="close" type="button" data-close="categoryFilterModal" aria-label="Close category filter">×</button>
-    </div>
-    <div class="filter-section-title" id="categoryFilterSectionTitle">Categories</div>
-    <div id="categoryFilterList" class="category-filter-list"></div>
-    <section id="tagFilterSection" class="tag-filter-section" aria-labelledby="tagFilterTitle">
-      <div class="tag-filter-head">
-        <div class="filter-section-title" id="tagFilterTitle">Tags</div>
-        <button id="clearTagFiltersBtn" class="clear-tag-filters" type="button">Clear tags</button>
-      </div>
-      <div id="tagFilterList" class="tag-filter-list"></div>
-    </section>
-  </div>
 </div>
 
 <div id="archiveModal" class="modal">
@@ -1650,7 +1699,7 @@ function applyLanguage(){
   document.getElementById("saveOrderBtn").textContent=t("saveOrder");
   document.getElementById("clearBtn").setAttribute("aria-label",t("clearCart"));
   document.getElementById("categoryFilterTitle").textContent=t("filterByCategory");
-  document.querySelector('[data-close="categoryFilterModal"]')?.setAttribute("aria-label",t("closeCategoryFilter"));
+  document.querySelector('[data-close="categoryFilterPanel"]')?.setAttribute("aria-label",t("closeCategoryFilter"));
   document.getElementById("categoryFilterSectionTitle").textContent=t("categories");
   document.getElementById("tagFilterTitle").textContent=t("tags");
   document.getElementById("clearTagFiltersBtn").textContent=t("clearTags");
@@ -2334,6 +2383,14 @@ function renderCategoryFilter(){
       >${escapeHtml(tag)}</button>
     `).join("")
     :`<div class="tag-filter-empty">${escapeHtml(t("noTags"))}</div>`;
+}
+function setCategoryFilterOpen(open){
+  const panel=document.getElementById("categoryFilterPanel");
+  const button=document.getElementById("categoryFilterBtn");
+  if(!panel || !button) return;
+  panel.classList.toggle("open",open);
+  panel.setAttribute("aria-hidden",String(!open));
+  button.setAttribute("aria-expanded",String(open));
 }
 function renderCart(){
   const itemCount=LIST_NUMBERS.reduce(
@@ -3299,8 +3356,6 @@ document.addEventListener("click",e=>{
     state.categoryFilter=categoryFilterOption.dataset.categoryFilter;
     renderCategories();
     renderCategoryFilter();
-    document.getElementById("categoryFilterModal").classList.remove("open");
-    document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","false");
     return;
   }
   const tagFilterOption=t.closest("[data-tag-filter]");
@@ -3435,8 +3490,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.restore) restoreProduct(t.dataset.restore);
   if(t.dataset.close){
     document.getElementById(t.dataset.close).classList.remove("open");
-    if(t.dataset.close==="categoryFilterModal"){
-      document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","false");
+    if(t.dataset.close==="categoryFilterPanel"){
+      setCategoryFilterOpen(false);
     }
   }
 });
@@ -3483,15 +3538,9 @@ document.getElementById("languageSwitch").addEventListener("click",e=>{
 document.getElementById("refreshSheetBtn").onclick=loadFromSheet;
 document.getElementById("categoryFilterBtn").onclick=()=>{
   renderCategoryFilter();
-  document.getElementById("categoryFilterModal").classList.add("open");
-  document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","true");
+  const panel=document.getElementById("categoryFilterPanel");
+  setCategoryFilterOpen(!panel.classList.contains("open"));
 };
-document.getElementById("categoryFilterModal").addEventListener("click",e=>{
-  if(e.target.id==="categoryFilterModal"){
-    e.currentTarget.classList.remove("open");
-    document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","false");
-  }
-});
 document.getElementById("archiveBtn").onclick=()=>{
   renderArchive();
   document.getElementById("archiveModal").classList.add("open");
@@ -3515,9 +3564,8 @@ document.getElementById("runningLowToggle").onclick=()=>{
 document.addEventListener("keydown",e=>{
   if(e.key==="Escape" && activeDetailItemId) closeItemDetail();
   else if(e.key==="Escape" && state.cartOpen) closeCheckout();
-  else if(e.key==="Escape" && document.getElementById("categoryFilterModal").classList.contains("open")){
-    document.getElementById("categoryFilterModal").classList.remove("open");
-    document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","false");
+  else if(e.key==="Escape" && document.getElementById("categoryFilterPanel").classList.contains("open")){
+    setCategoryFilterOpen(false);
   }
 });
 
