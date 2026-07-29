@@ -981,7 +981,6 @@
       font-size:12px;background:#F7F7F4;border:1px solid var(--line);
       border-radius:7px;padding:8px 9px;margin-top:6px;overflow-wrap:anywhere
     }
-    .drawer-description{font-size:14px;line-height:1.5;margin:0}
     .drawer-stats{
       display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px
     }
@@ -1538,8 +1537,6 @@ const I18N={
     everyDays:({count})=>`About every ${count} days`,
     receiptName:"Receipt Name",
     noReceiptName:"No receipt name recorded.",
-    description:"Description",
-    noDescription:"No description added yet.",
     priceSummary:"Price Summary",
     lastPaidLabel:"Last paid",
     average:"Average",
@@ -1673,8 +1670,6 @@ const I18N={
     everyDays:({count})=>`Примерно каждые ${count} ${ruPlural(count,"день","дня","дней")}`,
     receiptName:"Название в чеке",
     noReceiptName:"Название из чека не сохранено.",
-    description:"Описание",
-    noDescription:"Описание пока не добавлено.",
     priceSummary:"Сводка цен",
     lastPaidLabel:"Последняя покупка",
     average:"Средняя",
@@ -2374,7 +2369,7 @@ function renderCategories(){
       !isArchived(i.id)
       && !isSheetArchiveProduct(i)
       && (!selectedTags.size||itemTags(i).some(tag=>selectedTags.has(tag)))
-      && (!q||[i.name,i.rusName,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink,...itemTags(i)].filter(Boolean).join(" ").toLowerCase().includes(q))
+      && (!q||[i.name,i.rusName,receiptSearchText(i),i.itemNumber,i.weight,i.productLink,...itemTags(i)].filter(Boolean).join(" ").toLowerCase().includes(q))
     );
     if(!items.length) return "";
     return `
@@ -2395,7 +2390,6 @@ function renderCategories(){
                     <button type="button" class="item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
                     ${itemNumbersHtml(item)}
                     <div class="item-unit">${item.weight?escapeHtml(item.weight):`${escapeHtml(t("unit"))}: ${escapeHtml(item.unit)}`}</div>
-                    ${item.description?`<div class="item-unit" title="${escapeHtml(item.description)}">${escapeHtml(item.description)}</div>`:""}
                     ${priceBadge(item.id)}
                     ${listSummaryHtml(item.id)}
                   </div>
@@ -2819,7 +2813,6 @@ function cleanProductRows(rows,{archiveLayout=false}={}){
     pic:normalizeImageUrl(sheetValue(row,["Pic Dropbox","Dropbox Pic","Pic URL","Pic","Picture","Image","Image URL","Photo"])),
     weight:String(sheetValue(row,["Weight","Size","Unit"] )||"").trim(),
     link:normalizeProductLink(sheetValue(row,["Link","Product Link","Costco Link","Official Link","Website","URL"])),
-    description:String(sheetValue(row,["Description","Details"] )||"").trim(),
     tags:parseTags(sheetValue(row,["Tag","Tags"])),
     category:String(namedCategory||tailCategory||"").trim()
     };
@@ -2859,7 +2852,6 @@ function replaceProductsFromRows(rows){
       unit:row.weight||"pc",
       weight:row.weight,
       productLink:row.link,
-      description:row.description,
       tags:row.tags.length?row.tags:itemTags(item),
       sheetPrice:row.cost,
       priceSource:row.cost!==null?"sheet":"",
@@ -2900,7 +2892,6 @@ function replaceArchiveProductsFromRows(rows){
       unit:row.weight||existing?.unit||"pc",
       weight:row.weight||existing?.weight||"",
       productLink:row.link||existing?.productLink||"",
-      description:row.description||existing?.description||"",
       tags:row.tags.length?row.tags:itemTags(existing),
       sheetPrice:row.cost!==null?row.cost:existing?.sheetPrice,
       priceSource:row.cost!==null?"sheet":(existing?.priceSource||""),
@@ -2961,7 +2952,6 @@ function saveOrder(){
         list:listNo,
         unit:item.unit,
         weight:item.weight||"",
-        description:item.description||"",
         imageUrl:itemImageData(item).src||"",
         price:price||null
       });
@@ -3384,11 +3374,6 @@ function renderProductDrawer(itemId){
     <section class="drawer-section">
       <div class="drawer-section-title">${escapeHtml(t("receiptName"))}</div>
       ${receiptHtml}
-    </section>
-
-    <section class="drawer-section">
-      <div class="drawer-section-title">${escapeHtml(t("description"))}</div>
-      <p class="drawer-description">${item.description?escapeHtml(item.description):escapeHtml(t("noDescription"))}</p>
     </section>
 
     <section class="drawer-section">
