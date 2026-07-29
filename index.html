@@ -741,6 +741,54 @@
       border-color:var(--ink);background:var(--ink);color:#fff
     }
     .category-filter-check{font-size:15px}
+    .filter-section-title{
+      margin:2px 0 8px;
+      color:var(--muted);
+      font-size:11px;
+      font-weight:900;
+      letter-spacing:.45px;
+      text-transform:uppercase
+    }
+    .tag-filter-section{
+      margin-top:18px;
+      padding-top:16px;
+      border-top:1px solid var(--line)
+    }
+    .tag-filter-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px
+    }
+    .tag-filter-head .filter-section-title{margin:0}
+    .clear-tag-filters{
+      border:0;
+      background:transparent;
+      color:var(--orange);
+      padding:4px 0;
+      font-size:11px;
+      font-weight:800
+    }
+    .clear-tag-filters:disabled{opacity:.35;cursor:default}
+    .tag-filter-list{display:flex;flex-wrap:wrap;gap:8px}
+    .tag-filter-option{
+      min-height:36px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:7px 12px;
+      background:#FAFAF8;
+      color:var(--ink);
+      font-size:12px;
+      font-weight:800
+    }
+    .tag-filter-option.selected{
+      border-color:#D79B00;
+      background:var(--yellow);
+      color:var(--ink);
+      box-shadow:0 0 0 2px rgba(242,183,5,.18)
+    }
+    .tag-filter-empty{color:var(--muted);font-size:12px}
     @media(max-width:480px){
       .category-filter-list{grid-template-columns:1fr}
     }
@@ -1023,7 +1071,15 @@
       <strong id="categoryFilterTitle">Filter by category</strong>
       <button class="close" type="button" data-close="categoryFilterModal" aria-label="Close category filter">×</button>
     </div>
+    <div class="filter-section-title" id="categoryFilterSectionTitle">Categories</div>
     <div id="categoryFilterList" class="category-filter-list"></div>
+    <section id="tagFilterSection" class="tag-filter-section" aria-labelledby="tagFilterTitle">
+      <div class="tag-filter-head">
+        <div class="filter-section-title" id="tagFilterTitle">Tags</div>
+        <button id="clearTagFiltersBtn" class="clear-tag-filters" type="button">Clear tags</button>
+      </div>
+      <div id="tagFilterList" class="tag-filter-list"></div>
+    </section>
   </div>
 </div>
 
@@ -1228,6 +1284,7 @@ let state = {
   orders: loadLocal(LS.orders, []),
   query:"",
   categoryFilter:"all",
+  tagFilters:[],
   cartOpen:false,
   language:loadLocal(LS.language,"en")==="ru"?"ru":"en",
   settings: {
@@ -1262,8 +1319,9 @@ const I18N={
     openCart:"Open cart",
     searchProducts:"Search products...",
     refreshProducts:"Refresh products from Google Sheet",
-    filterProducts:"Filter products by category",
+    filterProducts:"Filter products by category and tags",
     categorySelected:({name})=>`Category: ${name}`,
+    filtersSelected:({count})=>`${count} filter${Number(count)===1?"":"s"} selected`,
     openArchive:"Open archived products",
     openReceiptChat:"Open ChatGPT receipt analysis chat",
     runningLow:"Running Low",
@@ -1275,14 +1333,18 @@ const I18N={
     savePdf:"Save PDF",
     saveOrder:"Save Order",
     clearCart:"Clear cart",
-    filterByCategory:"Filter by category",
-    closeCategoryFilter:"Close category filter",
+    filterByCategory:"Filter products",
+    closeCategoryFilter:"Close product filters",
     archive:"Archive",
     closeArchive:"Close Archive",
     restoreHidden:"Restore hidden products",
     productDetails:"Product Details",
     closeProductDetails:"Close product details",
     allCategories:"All categories",
+    categories:"Categories",
+    tags:"Tags",
+    clearTags:"Clear tags",
+    noTags:"No tags in the Items sheet yet.",
     uncategorized:"Uncategorized",
     itemCount:({count})=>`${count} item${Number(count)===1?"":"s"}`,
     listCount:({count})=>`${count} list${Number(count)===1?"":"s"}`,
@@ -1390,8 +1452,9 @@ const I18N={
     openCart:"Открыть корзину",
     searchProducts:"Поиск товаров...",
     refreshProducts:"Обновить товары из Google Таблицы",
-    filterProducts:"Фильтр товаров по категориям",
+    filterProducts:"Фильтр товаров по категориям и тегам",
     categorySelected:({name})=>`Категория: ${name}`,
+    filtersSelected:({count})=>`Выбрано фильтров: ${count}`,
     openArchive:"Открыть архив товаров",
     openReceiptChat:"Открыть ChatGPT для анализа нового чека",
     runningLow:"Пора купить",
@@ -1403,14 +1466,18 @@ const I18N={
     savePdf:"Сохранить PDF",
     saveOrder:"Сохранить заказ",
     clearCart:"Очистить корзину",
-    filterByCategory:"Фильтр по категориям",
-    closeCategoryFilter:"Закрыть фильтр категорий",
+    filterByCategory:"Фильтр товаров",
+    closeCategoryFilter:"Закрыть фильтры товаров",
     archive:"Архив",
     closeArchive:"Закрыть архив",
     restoreHidden:"Вернуть скрытые товары",
     productDetails:"О товаре",
     closeProductDetails:"Закрыть информацию о товаре",
     allCategories:"Все категории",
+    categories:"Категории",
+    tags:"Теги",
+    clearTags:"Очистить теги",
+    noTags:"В таблице Items пока нет тегов.",
     uncategorized:"Без категории",
     itemCount:({count})=>`${count} ${ruPlural(count,"товар","товара","товаров")}`,
     listCount:({count})=>`${count} ${ruPlural(count,"список","списка","списков")}`,
@@ -1584,6 +1651,9 @@ function applyLanguage(){
   document.getElementById("clearBtn").setAttribute("aria-label",t("clearCart"));
   document.getElementById("categoryFilterTitle").textContent=t("filterByCategory");
   document.querySelector('[data-close="categoryFilterModal"]')?.setAttribute("aria-label",t("closeCategoryFilter"));
+  document.getElementById("categoryFilterSectionTitle").textContent=t("categories");
+  document.getElementById("tagFilterTitle").textContent=t("tags");
+  document.getElementById("clearTagFiltersBtn").textContent=t("clearTags");
   document.getElementById("archiveModalTitle").textContent=t("archive");
   document.querySelector('[data-close="archiveModal"]')?.setAttribute("aria-label",t("closeArchive"));
   document.getElementById("restoreAllBtn").textContent=t("restoreHidden");
@@ -2151,11 +2221,17 @@ function imageHtml(item,cart=false){
 function renderCategories(){
   const root=document.getElementById("categoriesRoot");
   const q=state.query.trim().toLowerCase();
+  const selectedTags=new Set((state.tagFilters||[]).map(normalizeTag).filter(Boolean));
   const visibleCategories=state.categoryFilter==="all"
     ? state.categories
     : state.categories.filter(cat=>cat.id===state.categoryFilter);
   root.innerHTML=visibleCategories.map(cat=>{
-    const items=cat.items.filter(i=>!isArchived(i.id) && !isSheetArchiveProduct(i) && (!q||[i.name,i.rusName,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink].filter(Boolean).join(" ").toLowerCase().includes(q)));
+    const items=cat.items.filter(i=>
+      !isArchived(i.id)
+      && !isSheetArchiveProduct(i)
+      && (!selectedTags.size||itemTags(i).some(tag=>selectedTags.has(tag)))
+      && (!q||[i.name,i.rusName,receiptSearchText(i),i.itemNumber,i.description,i.weight,i.productLink,...itemTags(i)].filter(Boolean).join(" ").toLowerCase().includes(q))
+    );
     if(!items.length) return "";
     return `
       <section class="category">
@@ -2210,9 +2286,11 @@ function renderCategories(){
 }
 
 function renderCategoryFilter(){
-  const root=document.getElementById("categoryFilterList");
+  const categoryRoot=document.getElementById("categoryFilterList");
+  const tagRoot=document.getElementById("tagFilterList");
+  const clearTags=document.getElementById("clearTagFiltersBtn");
   const button=document.getElementById("categoryFilterBtn");
-  if(!root || !button) return;
+  if(!categoryRoot || !tagRoot || !clearTags || !button) return;
   const options=[
     {id:"all",name:t("allCategories")},
     ...state.categories.map(category=>({id:category.id,name:categoryDisplayName(category.name)}))
@@ -2220,12 +2298,21 @@ function renderCategoryFilter(){
   const selected=options.some(option=>option.id===state.categoryFilter)
     ? state.categoryFilter
     : "all";
+  const tags=availableTags();
+  const selectedTags=[...new Set(
+    (state.tagFilters||[])
+      .map(normalizeTag)
+      .filter(tag=>tags.includes(tag))
+  )];
   state.categoryFilter=selected;
-  button.classList.toggle("active",selected!=="all");
-  const selectedName=options.find(option=>option.id===selected)?.name||t("allCategories");
-  button.title=selected==="all"?t("filterProducts"):t("categorySelected",{name:selectedName});
+  state.tagFilters=selectedTags;
+  const activeFilterCount=(selected!=="all"?1:0)+selectedTags.length;
+  button.classList.toggle("active",activeFilterCount>0);
+  button.title=activeFilterCount
+    ?t("filtersSelected",{count:activeFilterCount})
+    :t("filterProducts");
   button.setAttribute("aria-label",button.title);
-  root.innerHTML=options.map(option=>`
+  categoryRoot.innerHTML=options.map(option=>`
     <button
       type="button"
       class="category-filter-option ${option.id===selected?"selected":""}"
@@ -2236,6 +2323,17 @@ function renderCategoryFilter(){
       <span class="category-filter-check" aria-hidden="true">${option.id===selected?"✓":""}</span>
     </button>
   `).join("");
+  clearTags.disabled=!selectedTags.length;
+  tagRoot.innerHTML=tags.length
+    ?tags.map(tag=>`
+      <button
+        type="button"
+        class="tag-filter-option ${selectedTags.includes(tag)?"selected":""}"
+        data-tag-filter="${escapeHtml(tag)}"
+        aria-pressed="${selectedTags.includes(tag)?"true":"false"}"
+      >${escapeHtml(tag)}</button>
+    `).join("")
+    :`<div class="tag-filter-empty">${escapeHtml(t("noTags"))}</div>`;
 }
 function renderCart(){
   const itemCount=LIST_NUMBERS.reduce(
@@ -2526,6 +2624,31 @@ function receiptItemNumber(item){
 function slugify(value){
   return String(value||"item").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60)||`item-${Date.now()}`;
 }
+function normalizeTag(value){
+  const tag=String(value||"")
+    .trim()
+    .replace(/^#+/,"")
+    .replace(/\s+/g," ")
+    .toLowerCase();
+  return tag?`#${tag}`:"";
+}
+function parseTags(value){
+  return [...new Set(
+    String(value||"")
+      .split(/[,;\n|]+/)
+      .map(normalizeTag)
+      .filter(Boolean)
+  )];
+}
+function itemTags(item){
+  const values=Array.isArray(item?.tags)?item.tags:parseTags(item?.tags);
+  return [...new Set(values.map(normalizeTag).filter(Boolean))];
+}
+function availableTags(){
+  return [...new Set(
+    state.categories.flatMap(category=>category.items.flatMap(item=>itemTags(item)))
+  )].sort((a,b)=>a.localeCompare(b,state.language==="ru"?"ru":"en"));
+}
 function cleanProductRows(rows,{archiveLayout=false}={}){
   return (rows||[]).map(row=>{
     const cells=Array.isArray(row?.__cells)?row.__cells:[];
@@ -2543,6 +2666,7 @@ function cleanProductRows(rows,{archiveLayout=false}={}){
     weight:String(sheetValue(row,["Weight","Size","Unit"] )||"").trim(),
     link:normalizeProductLink(sheetValue(row,["Link","Product Link","Costco Link","Official Link","Website","URL"])),
     description:String(sheetValue(row,["Description","Details"] )||"").trim(),
+    tags:parseTags(sheetValue(row,["Tag","Tags"])),
     category:String(namedCategory||tailCategory||"").trim()
     };
   }).filter(r=>r.name||r.itemNumber);
@@ -2582,6 +2706,7 @@ function replaceProductsFromRows(rows){
       weight:row.weight,
       productLink:row.link,
       description:row.description,
+      tags:row.tags.length?row.tags:itemTags(item),
       sheetPrice:row.cost,
       priceSource:row.cost!==null?"sheet":"",
       imageUrl:row.pic,
@@ -2622,6 +2747,7 @@ function replaceArchiveProductsFromRows(rows){
       weight:row.weight||existing?.weight||"",
       productLink:row.link||existing?.productLink||"",
       description:row.description||existing?.description||"",
+      tags:row.tags.length?row.tags:itemTags(existing),
       sheetPrice:row.cost!==null?row.cost:existing?.sheetPrice,
       priceSource:row.cost!==null?"sheet":(existing?.priceSource||""),
       imageUrl:row.pic||existing?.imageUrl||"",
@@ -3175,6 +3301,23 @@ document.addEventListener("click",e=>{
     renderCategoryFilter();
     document.getElementById("categoryFilterModal").classList.remove("open");
     document.getElementById("categoryFilterBtn").setAttribute("aria-expanded","false");
+    return;
+  }
+  const tagFilterOption=t.closest("[data-tag-filter]");
+  if(tagFilterOption){
+    const tag=normalizeTag(tagFilterOption.dataset.tagFilter);
+    const selectedTags=new Set((state.tagFilters||[]).map(normalizeTag).filter(Boolean));
+    if(selectedTags.has(tag)) selectedTags.delete(tag);
+    else selectedTags.add(tag);
+    state.tagFilters=[...selectedTags];
+    renderCategories();
+    renderCategoryFilter();
+    return;
+  }
+  if(t.closest("#clearTagFiltersBtn")){
+    state.tagFilters=[];
+    renderCategories();
+    renderCategoryFilter();
     return;
   }
   const cartAddMenuButton=t.closest("[data-cart-add-menu]");
