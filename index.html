@@ -1489,6 +1489,7 @@ const I18N={
     noRunningLow:"No items are clearly due for repurchase yet.",
     lastPurchasedReason:({elapsed,interval})=>`last purchased ${elapsed} day${Number(elapsed)===1?"":"s"} ago, usually every ${interval} days`,
     unit:"Unit",
+    itemNumberPrefix:"Item #",
     moveToArchive:"Move to Archive",
     archiveProduct:({name})=>`Archive ${name}`,
     renameList:"Rename this list",
@@ -1528,7 +1529,7 @@ const I18N={
     viewOfficialPage:"View Official Product Page",
     viewOnCostco:"View Product on Costco",
     productInformation:"Product Information",
-    itemNumber:"Item number",
+    itemNumber:"Item #",
     category:"Category",
     weightSize:"Weight / size",
     cartQuantity:"Cart quantity",
@@ -1621,7 +1622,8 @@ const I18N={
     nothingDue:"Сейчас больше ничего не пора покупать.",
     noRunningLow:"Пока нет товаров, которые точно пора покупать снова.",
     lastPurchasedReason:({elapsed,interval})=>`последняя покупка ${elapsed} ${ruPlural(elapsed,"день","дня","дней")} назад, обычно каждые ${interval} ${ruPlural(interval,"день","дня","дней")}`,
-    unit:"Единица",
+    unit:"Unit",
+    itemNumberPrefix:"Артикул #",
     moveToArchive:"Переместить в архив",
     archiveProduct:({name})=>`Переместить ${name} в архив`,
     renameList:"Переименовать список",
@@ -1661,7 +1663,7 @@ const I18N={
     viewOfficialPage:"Открыть официальную страницу товара",
     viewOnCostco:"Открыть товар на Costco",
     productInformation:"Информация о товаре",
-    itemNumber:"Номер товара",
+    itemNumber:"Артикул #",
     category:"Категория",
     weightSize:"Вес / размер",
     cartQuantity:"Количество в корзине",
@@ -1932,9 +1934,9 @@ function renderArchive(){
         <div class="archive-item-copy">
           <button type="button" class="archive-item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
           <div class="archive-item-meta">
-            ${item.itemNumber?`#${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(categoryDisplayName(item.categoryName))}
+            ${item.itemNumber?`${escapeHtml(t("itemNumberPrefix"))} ${escapeHtml(item.itemNumber)} · `:""}${escapeHtml(categoryDisplayName(item.categoryName))}
           </div>
-          ${item.weight?`<div class="archive-item-meta">${escapeHtml(item.weight)}</div>`:""}
+          ${item.weight?`<div class="archive-item-meta">${escapeHtml(t("unit"))}: ${escapeHtml(item.weight)}</div>`:""}
           ${price>0?`<div class="archive-item-price">$${price.toFixed(2)}</div>`:""}
           ${listSummaryHtml(item.id)}
         </div>
@@ -2023,7 +2025,7 @@ function itemNumbersHtml(item, className="item-receipt"){
   }
 
   return numbers.length
-    ? `<div class="${className}">${numbers.map(escapeHtml).join(" / ")}</div>`
+    ? `<div class="${className}">${escapeHtml(t("itemNumberPrefix"))} ${numbers.map(escapeHtml).join(" / ")}</div>`
     : "";
 }
 const LIST_NUMBERS=[1,2,3];
@@ -2389,7 +2391,7 @@ function renderCategories(){
                   <div class="item-main">
                     <button type="button" class="item-name item-name-button" data-detail="${item.id}">${escapeHtml(itemDisplayName(item))}</button>
                     ${itemNumbersHtml(item)}
-                    <div class="item-unit">${item.weight?escapeHtml(item.weight):`${escapeHtml(t("unit"))}: ${escapeHtml(item.unit)}`}</div>
+                    <div class="item-unit">${escapeHtml(t("unit"))}: ${escapeHtml(item.weight||item.unit)}</div>
                     ${priceBadge(item.id)}
                     ${listSummaryHtml(item.id)}
                   </div>
