@@ -731,6 +731,35 @@
       display:flex;align-items:flex-end;justify-content:space-between;
       gap:12px;margin-bottom:12px
     }
+    .checkout-recommendations-pager{
+      display:flex;
+      align-items:center;
+      gap:7px;
+      flex:0 0 auto
+    }
+    .checkout-recommendations-page{
+      min-width:38px;
+      color:var(--muted);
+      text-align:center;
+      font-size:11px;
+      font-weight:900
+    }
+    .checkout-recommendations-page-btn{
+      width:32px;
+      height:32px;
+      padding:0;
+      border:1px solid var(--line);
+      border-radius:8px;
+      background:#fff;
+      color:var(--ink);
+      font-size:20px;
+      font-weight:900;
+      line-height:1
+    }
+    .checkout-recommendations-page-btn:disabled{
+      opacity:.3;
+      cursor:default
+    }
     .checkout-recommendations-title{display:block;font-size:17px;font-weight:900}
     .checkout-recommendations-subtitle{margin-top:3px;color:var(--muted);font-size:11px}
     .checkout-recommendations-grid{
@@ -1367,6 +1396,7 @@ let state = {
   query:"",
   categoryFilter:"all",
   tagFilters:[],
+  checkoutRecommendationsPage:0,
   cartOpen:false,
   language:loadLocal(LS.language,"en")==="ru"?"ru":"en",
   settings: {
@@ -1452,6 +1482,8 @@ const I18N={
     onlineEstimate:"online estimate",
     youMayAlsoNeed:"You may also need",
     recommendationsSubtitle:"Based on how often you usually buy these products",
+    previousRecommendations:"Previous recommended products",
+    nextRecommendations:"Next recommended products",
     boughtReason:({elapsed,interval})=>`Bought ${elapsed} day${Number(elapsed)===1?"":"s"} ago · usually every ${interval} days`,
     priceUnavailable:"Price unavailable",
     nothingDue:"Nothing else looks due right now.",
@@ -1585,6 +1617,8 @@ const I18N={
     onlineEstimate:"цена онлайн",
     youMayAlsoNeed:"Возможно, вам ещё нужно",
     recommendationsSubtitle:"На основе того, как часто вы обычно покупаете эти товары",
+    previousRecommendations:"Предыдущие рекомендуемые товары",
+    nextRecommendations:"Следующие рекомендуемые товары",
     boughtReason:({elapsed,interval})=>`Покупали ${elapsed} ${ruPlural(elapsed,"день","дня","дней")} назад · обычно каждые ${interval} ${ruPlural(interval,"день","дня","дней")}`,
     priceUnavailable:"Цена неизвестна",
     nothingDue:"Сейчас больше ничего не пора покупать.",
@@ -2146,14 +2180,23 @@ function getCheckoutRecommendations(){
     })
     .filter(Boolean)
     .filter(item=>item.score>=.65)
-    .sort((a,b)=>b.score-a.score || a.interval-b.interval)
-    .slice(0,6);
+    .sort((a,b)=>b.score-a.score || a.interval-b.interval);
 }
+
+const CHECKOUT_RECOMMENDATIONS_PAGE_SIZE=6;
 
 function renderCheckoutRecommendations(){
   const root=document.getElementById("checkoutRecommendations");
   if(!root) return;
   const items=getCheckoutRecommendations();
+  const pageCount=Math.max(1,Math.ceil(items.length/CHECKOUT_RECOMMENDATIONS_PAGE_SIZE));
+  const requestedPage=Number(state.checkoutRecommendationsPage)||0;
+  const pageIndex=Math.max(0,Math.min(requestedPage,pageCount-1));
+  const pageItems=items.slice(
+    pageIndex*CHECKOUT_RECOMMENDATIONS_PAGE_SIZE,
+    (pageIndex+1)*CHECKOUT_RECOMMENDATIONS_PAGE_SIZE
+  );
+  state.checkoutRecommendationsPage=pageIndex;
 
   root.innerHTML=`
     <div class="checkout-recommendations-head">
@@ -2161,10 +2204,29 @@ function renderCheckoutRecommendations(){
         <strong id="checkoutRecommendationsTitle" class="checkout-recommendations-title">${escapeHtml(t("youMayAlsoNeed"))}</strong>
         <div class="checkout-recommendations-subtitle">${escapeHtml(t("recommendationsSubtitle"))}</div>
       </div>
+      ${items.length>CHECKOUT_RECOMMENDATIONS_PAGE_SIZE?`
+        <div class="checkout-recommendations-pager" aria-label="${escapeHtml(t("youMayAlsoNeed"))}">
+          <button
+            type="button"
+            class="checkout-recommendations-page-btn"
+            data-recommendation-page="${pageIndex-1}"
+            aria-label="${escapeHtml(t("previousRecommendations"))}"
+            ${pageIndex===0?"disabled":""}
+          >‹</button>
+          <span class="checkout-recommendations-page">${pageIndex+1} / ${pageCount}</span>
+          <button
+            type="button"
+            class="checkout-recommendations-page-btn"
+            data-recommendation-page="${pageIndex+1}"
+            aria-label="${escapeHtml(t("nextRecommendations"))}"
+            ${pageIndex===pageCount-1?"disabled":""}
+          >›</button>
+        </div>
+      `:""}
     </div>
     ${items.length?`
       <div class="checkout-recommendations-grid">
-        ${items.map(item=>{
+        ${pageItems.map(item=>{
           const price=itemUnitPrice(item);
           return `
             <article class="checkout-recommendation" data-selected-list="${selectedList(item.id)}">
@@ -2569,6 +2631,8 @@ function updateCartTotal(){
 function openCheckout(){
   if(!Number(document.getElementById("cartCount").textContent)) return;
   state.cartOpen=true;
+  state.checkoutRecommendationsPage=0;
+  renderCheckoutRecommendations();
   document.getElementById("checkoutModal").classList.add("open");
   document.body.classList.add("checkout-open");
 }
@@ -3467,6 +3531,14 @@ document.addEventListener("click",e=>{
     const itemId=t.dataset.addSuggestion;
     const listNo=selectedList(itemId);
     setQty(itemId,qty(itemId,listNo)+1,listNo);
+  }
+  if(t.dataset.recommendationPage!==undefined){
+    const page=Number(t.dataset.recommendationPage);
+    if(Number.isInteger(page) && page>=0){
+      state.checkoutRecommendationsPage=page;
+      renderCheckoutRecommendations();
+    }
+    return;
   }
   if(t.dataset.checkoutRecommendation){
     const itemId=t.dataset.checkoutRecommendation;
