@@ -15,6 +15,12 @@
       --line:#DAD7CC;
       --muted:#8A8F9C;
       --card:#FFFFFF;
+      --list-2-bg:#DDEFE4;
+      --list-2-ink:#245C3B;
+      --list-2-border:#8FBE9F;
+      --list-3-bg:#E5E8ED;
+      --list-3-ink:#414A59;
+      --list-3-border:#A4AAB5;
     }
     *{box-sizing:border-box}
     body{
@@ -329,6 +335,16 @@
       padding:10px 10px 10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px
     }
     .item.active{border-color:var(--ink)}
+    .item.active[data-selected-list="2"]{
+      border-color:var(--list-2-border);
+      background:#F7FCF8;
+      box-shadow:inset 4px 0 0 var(--list-2-border)
+    }
+    .item.active[data-selected-list="3"]{
+      border-color:var(--list-3-border);
+      background:#FAFBFC;
+      box-shadow:inset 4px 0 0 var(--list-3-border)
+    }
     .item-content{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
     .item-photo-wrap{
       width:48px;height:48px;border-radius:8px;overflow:hidden;flex:0 0 48px;
@@ -396,6 +412,14 @@
       color:#3E4659;
       font-size:10px;
       font-weight:800
+    }
+    .list-mini-badge[data-list-number="2"]{
+      background:var(--list-2-bg);
+      color:var(--list-2-ink)
+    }
+    .list-mini-badge[data-list-number="3"]{
+      background:var(--list-3-bg);
+      color:var(--list-3-ink)
     }
     @media(max-width:640px){
       .item{align-items:flex-start}
@@ -846,6 +870,22 @@
       background:#FAFAF8;color:var(--muted);font-size:11px;font-weight:900
     }
     .drawer-list-pick button.selected{background:var(--ink);border-color:var(--ink);color:#fff}
+    .list-pick button.selected[data-list-number="2"],
+    .cart-list-pick button.selected[data-list-number="2"],
+    .drawer-list-pick button.selected[data-list-number="2"]{
+      background:var(--list-2-bg);
+      color:var(--list-2-ink);
+      border-color:var(--list-2-border);
+      box-shadow:inset 0 0 0 1px var(--list-2-border)
+    }
+    .list-pick button.selected[data-list-number="3"],
+    .cart-list-pick button.selected[data-list-number="3"],
+    .drawer-list-pick button.selected[data-list-number="3"]{
+      background:var(--list-3-bg);
+      color:var(--list-3-ink);
+      border-color:var(--list-3-border);
+      box-shadow:inset 0 0 0 1px var(--list-3-border)
+    }
     .drawer-list-summary{font-size:10.5px;color:var(--muted);line-height:1.35}
     .drawer-qty-controls{display:flex;align-items:center;gap:10px}
     .drawer-qty-controls button{
@@ -1724,6 +1764,7 @@ function renderArchive(){
                 type="button"
                 class="${activeList===listNo?"selected":""}"
                 data-list-select="${item.id}|${listNo}"
+                data-list-number="${listNo}"
                 title="${escapeHtml(t("addToListNumber",{number:listNo}))}"
                 aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
               >${listNo}</button>
@@ -1852,7 +1893,7 @@ function listSummaryHtml(itemId){
   const badges=LIST_NUMBERS
     .map(listNo=>({listNo,quantity:qty(itemId,listNo)}))
     .filter(row=>row.quantity>0)
-    .map(row=>`<span class="list-mini-badge">${escapeHtml(t("listBadge",{number:row.listNo,quantity:row.quantity}))}</span>`)
+    .map(row=>`<span class="list-mini-badge" data-list-number="${row.listNo}">${escapeHtml(t("listBadge",{number:row.listNo,quantity:row.quantity}))}</span>`)
     .join("");
   return badges?`<div class="item-list-summary">${badges}</div>`:"";
 }
@@ -2127,7 +2168,7 @@ function renderCategories(){
             const activeList=selectedList(item.id);
             const activeListQty=qty(item.id,activeList);
             return `
-              <div class="item ${active?"active":""}">
+              <div class="item ${active?"active":""}" data-selected-list="${activeList}">
                 <div class="item-content">
                   ${imageHtml(item)}
                   <div class="item-main">
@@ -2146,6 +2187,7 @@ function renderCategories(){
                         type="button"
                         class="${activeList===listNo?"selected":""}"
                         data-list-select="${item.id}|${listNo}"
+                        data-list-number="${listNo}"
                         title="${escapeHtml(t("addToListNumber",{number:listNo}))}"
                         aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
                       >${listNo}</button>
@@ -2274,6 +2316,7 @@ function renderCart(){
                       type="button"
                       class="${targetList===listNo?"selected":""}"
                       data-cart-move="${listNo}|${item.id}|${targetList}"
+                      data-list-number="${targetList}"
                       title="${escapeHtml(t("moveToList",{number:targetList}))}"
                       aria-label="${escapeHtml(t("moveProductToList",{name:itemDisplayName(item),number:targetList}))}"
                     >${targetList}</button>
@@ -3093,6 +3136,7 @@ function renderProductDrawer(itemId){
               type="button"
               class="${activeList===listNo?"selected":""}"
               data-list-select="${item.id}|${listNo}"
+              data-list-number="${listNo}"
               aria-label="${escapeHtml(t("chooseListNumber",{number:listNo}))}"
             >${listNo}</button>
           `).join("")}
